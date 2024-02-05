@@ -668,7 +668,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         {
             if (!shouldWarp)
             {
-                Mouse->Warp();
+                //Mouse->Warp();
             }
             //MainCamera->MoveForward(Mouse->WheelY() * 10.0f * elapsed);
             MainCamera->MoveForward(elapsed * Mouse->RelativeY());

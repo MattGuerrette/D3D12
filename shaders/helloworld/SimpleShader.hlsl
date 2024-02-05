@@ -1,32 +1,35 @@
 
-cbuffer SceneConstantBuffer : register(b0)
+
+struct Transform
 {
-    matrix modelViewProjection;
+    float4x4 ModelViewProjection;
 };
 
-struct Input
+ConstantBuffer<Transform> TransformData : register(b0);
+
+
+struct VertexInput
 {
-    float4 Position : SV_POSITION;
+    float3 Position : POSITION;
     float4 Color : COLOR;
 };
 
-Input VSMain(float4 position : POSITION, float4 color : COLOR)
+struct VertexOutput
 {
-    Input result;
-    result.Position = mul(modelViewProjection, position);
-    result.Color = color;
+    float4 Position : SV_Position;
+    float4 Color : COLOR;
+};
 
-    return result;
+VertexOutput VSMain(VertexInput input)
+{
+    VertexOutput output;
+    output.Position = mul(TransformData.ModelViewProjection, float4(input.Position, 1.0f));
+    output.Color = input.Color;
+
+    return output;
 }
 
-float4 PSMain(const Input input, float3 baryWeights : SV_Barycentrics) : SV_TARGET
+float4 PSMain(VertexOutput input) : SV_Target
 {
-    if (baryWeights.x < 0.01f || baryWeights.y < 0.01f || baryWeights.z < 0.01f)
-    {
-        return float4(1.0f, 1.0f, 1.0f, 1.0f);
-    }
-    else
-    {
-        return input.Color;
-    }
+    return input.Color;
 }
