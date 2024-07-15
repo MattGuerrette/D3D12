@@ -11,9 +11,8 @@ add_library(base STATIC
         SimpleMath.cpp
         Example.hpp
         Example.cpp
-        FileUtil.hpp
-        FileUtil.cpp
-)
+        File.cpp
+ "File.cpp")
 
 target_include_directories(base PUBLIC .)
-target_link_libraries(base PUBLIC fmt SDL2::SDL2-static SDL2::SDL2main Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility Microsoft::DirectStorage dxgi dxguid)
+target_link_libraries(base PUBLIC fmt SDL3::SDL3-static Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility Microsoft::DirectStorage dxgi dxguid)

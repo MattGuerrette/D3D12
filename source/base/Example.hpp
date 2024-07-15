@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <SDL3/SDL.h>
+
 #include <winrt/base.h>
 
 #include <dxgi1_6.h>
@@ -15,8 +17,6 @@
 
 #include <string>
 #include <memory>
-
-#include <SDL2/SDL.h>
 
 #include "GameTimer.hpp"
 #include "Keyboard.hpp"

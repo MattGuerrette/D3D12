@@ -1,26 +1,26 @@
+
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) Matt Guerrette 2023.
-// SPDX-License-Identifier: MIT
+// Copyright (c) 2023-2024. Matt Guerrette. All rights reserved.
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "Keyboard.hpp"
 
 bool Keyboard::IsKeyClicked(SDL_Scancode key)
 {
-	return CurrentKeyState[key] && !PreviousKeyState[key];
+    return CurrentKeyState_[key] && !PreviousKeyState_[key];
 }
 
 bool Keyboard::IsKeyPressed(SDL_Scancode key)
 {
-	return CurrentKeyState[key];
+    return CurrentKeyState_[key];
 }
 
 void Keyboard::RegisterKeyEvent(SDL_KeyboardEvent* event)
 {
-	CurrentKeyState[event->keysym.scancode] = event->state == SDL_PRESSED;
+    CurrentKeyState_[event->scancode] = event->state == SDL_PRESSED;
 }
 
 void Keyboard::Update()
 {
-	PreviousKeyState = CurrentKeyState;
+    PreviousKeyState_ = CurrentKeyState_;
 }

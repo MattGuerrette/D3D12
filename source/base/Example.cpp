@@ -2,13 +2,11 @@
 // Copyright (c) Matt Guerrette 2023.
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
-// #include "imgui.h"
-// #include "imgui_impl_sdl2.h"
-// #include "imgui_impl_metal.h"
 
 #include "Example.hpp"
 
-#include <SDL_syswm.h>
+#include <SDL3/SDL_properties.h>
+
 #include <fmt/format.h>
 
 static bool shouldWarp = false;
@@ -24,9 +22,9 @@ namespace
         if (factory6)
         {
             for (UINT index = 0; SUCCEEDED(
-                     factory6->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_UNSPECIFIED,
-                         IID_PPV_ARGS(&temp)));
-                 index++)
+                factory6->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_UNSPECIFIED,
+                    IID_PPV_ARGS(&temp)));
+                    index++)
             {
                 DXGI_ADAPTER_DESC1 desc;
                 winrt::check_hresult(temp->GetDesc1(&desc));
@@ -53,10 +51,10 @@ namespace
         {
             temp = nullptr;
             for (UINT adapterIndex = 0;
-                 SUCCEEDED(factory->EnumAdapters1(
-                     adapterIndex,
-                     temp.put()));
-                 adapterIndex++)
+                SUCCEEDED(factory->EnumAdapters1(
+                    adapterIndex,
+                    temp.put()));
+                adapterIndex++)
             {
                 DXGI_ADAPTER_DESC1 desc;
                 winrt::check_hresult(temp->GetDesc1(&desc));
@@ -70,7 +68,7 @@ namespace
 #ifdef _DEBUG
                 wchar_t buff[256] = {};
                 swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId,
-                           desc.DeviceId, desc.Description);
+                    desc.DeviceId, desc.Description);
                 OutputDebugStringW(buff);
 #endif
 
@@ -90,9 +88,9 @@ namespace
 
 Example::Example(const char* title, uint32_t width, uint32_t height)
     : BackBufferIndex(0)
-      , BackBufferFormat(DXGI_FORMAT_R16G16B16A16_FLOAT)
-      , DepthBufferFormat(DXGI_FORMAT_D32_FLOAT)
-      , FactoryFlags(0)
+    , BackBufferFormat(DXGI_FORMAT_R16G16B16A16_FLOAT)
+    , DepthBufferFormat(DXGI_FORMAT_D32_FLOAT)
+    , FactoryFlags(0)
 {
     // IMGUI_CHECKVERSION();
     // ImGui::CreateContext();
@@ -104,19 +102,24 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     // ImGui::StyleColorsDark();
 
 
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER) != 0)
     {
         fprintf(stderr, "Failed to initialize SDL.\n");
         abort();
     }
 
-    int flags = SDL_WINDOW_ALLOW_HIGHDPI;
-    flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-    SDL_DisplayMode mode;
-    SDL_GetCurrentDisplayMode(0, &mode);
-    width = mode.w;
-    height = mode.h;
-    Window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, (int)width, (int)height, flags);
+    int        numDisplays = 0;
+    const auto displays = SDL_GetDisplays(&numDisplays);
+    assert(numDisplays != 0);
+
+    const auto    mode = SDL_GetDesktopDisplayMode(displays[0]);
+    width = mode->w;
+    height = mode->h;
+    SDL_free(displays);
+
+    int flags = SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_RESIZABLE;
+
+    Window = SDL_CreateWindow(title, (int)width, (int)height, flags);
     if (!Window)
     {
         fprintf(stderr, "Failed to create SDL window.\n");
@@ -139,8 +142,8 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     Mouse = std::make_unique<class Mouse>(Window);
 
 
-    Timer.SetTargetElapsedSeconds(1.0f / static_cast<float>(mode.refresh_rate));
-    Timer.SetFixedTimeStep(true);
+    //Timer.SetTargetElapsedSeconds(1.0f / static_cast<float>(mode.refresh_rate));
+    Timer.SetFixedTimeStep(false);
 
     const auto actualWidth = GetFrameWidth();
     const auto actualHeight = GetFrameHeight();
@@ -150,9 +153,9 @@ Example::Example(const char* title, uint32_t width, uint32_t height)
     const float zfar = 1000.0f;
 
     MainCamera = std::make_unique<Camera>(Vector3::Zero,
-                                          Vector3::Forward,
-                                          Vector3::Up,
-                                          fov, aspect, znear, zfar);
+        Vector3::Forward,
+        Vector3::Up,
+        fov, aspect, znear, zfar);
 }
 
 Example::~Example()
@@ -253,7 +256,7 @@ void Example::CreateDeviceResources()
     for (UINT i = 0; i < BufferCount; i++)
     {
         winrt::check_hresult(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                                            IID_PPV_ARGS(&CommandAllocator[i])));
+            IID_PPV_ARGS(&CommandAllocator[i])));
 
         wchar_t name[25] = {};
         swprintf_s(name, L"RTV[%u] Allocator", i);
@@ -261,7 +264,7 @@ void Example::CreateDeviceResources()
     }
 
     winrt::check_hresult(Device->CreateCommandList1(0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE,
-                                                    IID_PPV_ARGS(&CommandList)));
+        IID_PPV_ARGS(&CommandList)));
 
 
     winrt::check_hresult(Device->CreateFence(FenceValue[0], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&Fence)));
@@ -322,9 +325,9 @@ void Example::CreateWindowDependentResources()
 #ifdef _DEBUG
             char buff[64] = {};
             sprintf_s(buff, "Device Lost on ResizeBuffers: Reason code 0x%08X\n",
-                      static_cast<unsigned int>((result == DXGI_ERROR_DEVICE_REMOVED)
-                                                    ? Device->GetDeviceRemovedReason()
-                                                    : result));
+                static_cast<unsigned int>((result == DXGI_ERROR_DEVICE_REMOVED)
+                    ? Device->GetDeviceRemovedReason()
+                    : result));
             OutputDebugStringA(buff);
 #endif
 
@@ -352,16 +355,16 @@ void Example::CreateWindowDependentResources()
 
         winrt::com_ptr<IDXGISwapChain1> swapChain;
 
-        SDL_SysWMinfo info;
-        SDL_VERSION(&info.version);
-        SDL_GetWindowWMInfo(Window, &info);
 
-        winrt::check_hresult(Factory->CreateSwapChainForHwnd(CommandQueue.get(), info.info.win.window, &swapChainDesc,
-                                                             nullptr, nullptr, swapChain.put()));
+        HWND hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(Window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+
+
+        winrt::check_hresult(Factory->CreateSwapChainForHwnd(CommandQueue.get(), hwnd, &swapChainDesc,
+            nullptr, nullptr, swapChain.put()));
         SwapChain = swapChain.as<IDXGISwapChain3>();
 
         // Disable ALT-ENTER fullscreen
-        winrt::check_hresult(Factory->MakeWindowAssociation(info.info.win.window, DXGI_MWA_NO_ALT_ENTER));
+        winrt::check_hresult(Factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER));
     }
     winrt::check_hresult(SwapChain->SetRotation(DXGI_MODE_ROTATION_IDENTITY));
 
@@ -382,7 +385,7 @@ void Example::CreateWindowDependentResources()
 
 
         Device->CreateRenderTargetView(RenderTarget[i].get(),
-                                       &renderTargetViewDesc, rtvDescriptor);
+            &renderTargetViewDesc, rtvDescriptor);
 
         rtvDescriptor.Offset(1, DescriptorSize);
     }
@@ -421,7 +424,7 @@ void Example::CreateWindowDependentResources()
         depthStencilViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 
         Device->CreateDepthStencilView(DepthStencilTarget.get(), &depthStencilViewDesc,
-                                       DsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+            DsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
     }
 }
 
@@ -511,9 +514,9 @@ void Example::Present(const D3D12_RESOURCE_STATES before)
 #ifdef _DEBUG
         char buff[64] = {};
         sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n",
-                  static_cast<unsigned int>((result == DXGI_ERROR_DEVICE_REMOVED)
-                                                ? Device->GetDeviceRemovedReason()
-                                                : result));
+            static_cast<unsigned int>((result == DXGI_ERROR_DEVICE_REMOVED)
+                ? Device->GetDeviceRemovedReason()
+                : result));
         OutputDebugStringA(buff);
 #endif
         HandleDeviceLost();
@@ -574,8 +577,8 @@ void Example::HandleDeviceLost()
         if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug))))
         {
             debug->ReportLiveObjects(DXGI_DEBUG_ALL,
-                                     static_cast<DXGI_DEBUG_RLO_FLAGS>(DXGI_DEBUG_RLO_SUMMARY |
-                                         DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+                static_cast<DXGI_DEBUG_RLO_FLAGS>(DXGI_DEBUG_RLO_SUMMARY |
+                    DXGI_DEBUG_RLO_IGNORE_INTERNAL));
         }
     }
 #endif
@@ -591,16 +594,14 @@ void Example::HandleDeviceLost()
 uint32_t Example::GetFrameWidth() const
 {
     int32_t w;
-    SDL_Metal_GetDrawableSize(Window, &w, nullptr);
+    SDL_GetWindowSizeInPixels(Window, &w, nullptr);
     return w;
 }
 
 uint32_t Example::GetFrameHeight() const
 {
     int32_t h;
-    SDL_Metal_GetDrawableSize(Window, nullptr, &h);
-
-
+    SDL_GetWindowSizeInPixels(Window, nullptr, &h);
     return h;
 }
 
@@ -612,51 +613,36 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
     }
 
 #if defined(__IPHONEOS__) || defined(__TVOS__)
-	SDL_iOSSetAnimationCallback(Window, 1, AnimationCallback, this);
+    SDL_iOSSetAnimationCallback(Window, 1, AnimationCallback, this);
 #else
     while (Running)
     {
         SDL_Event e;
-        SDL_ShowCursor(SDL_ENABLE);
+        //SDL_ShowCursor(SDL_ENABLE);
 
         while (SDL_PollEvent(&e))
         {
             //ImGui_ImplSDL2_ProcessEvent(&e);
-            if (e.type == SDL_QUIT)
+            if (e.type == SDL_EVENT_QUIT)
             {
                 Running = false;
                 continue;
             }
-            if (e.type == SDL_WINDOWEVENT)
-            {
-                switch (e.window.event)
-                {
-                case SDL_WINDOWEVENT_SHOWN:
-                {
-                    break;
-                }
-                }
-            }
 
 
-
-            if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
+            if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP)
             {
                 Keyboard->RegisterKeyEvent(&e.key);
             }
-            if (e.type == SDL_MOUSEBUTTONUP)
+            if (e.type == SDL_EVENT_MOUSE_BUTTON_UP || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
             {
                 Mouse->RegisterMouseButton(&e.button);
             }
-            if (e.type == SDL_MOUSEBUTTONDOWN)
-            {
-                Mouse->RegisterMouseButton(&e.button);
-            }
-            if (e.type == SDL_MOUSEMOTION)
+            if (e.type == SDL_EVENT_MOUSE_MOTION)
             {
                 Mouse->RegisterMouseMotion(&e.motion);
             }
-            if (e.type == SDL_MOUSEWHEEL)
+            if (e.type == SDL_EVENT_MOUSE_WHEEL)
             {
                 Mouse->RegisterMouseWheel(&e.wheel);
             }
@@ -664,7 +650,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 
 
         const auto elapsed = static_cast<float>(Timer.GetElapsedSeconds());
-        if (Keyboard->IsKeyPressed(SDL_SCANCODE_LSHIFT) && Mouse->LeftPressed() && Mouse->RightPressed())
+        if (Keyboard->IsKeyPressed(SDL_SCANCODE_LSHIFT) && Mouse->LeftPressed())
         {
             if (!shouldWarp)
             {
@@ -720,9 +706,9 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         }
 
         Timer.Tick([this]()
-        {
-            Update(Timer);
-        });
+            {
+                Update(Timer);
+            });
 
         Prepare();
         Clear();
@@ -738,7 +724,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         //Mouse->Warp();
         Keyboard->Update();
         Mouse->Update();
-    }
+}
 #endif
 
     WaitForGpu();

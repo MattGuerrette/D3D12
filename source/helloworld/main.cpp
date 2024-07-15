@@ -6,7 +6,9 @@
 #include <memory>
 
 #include "Example.hpp"
-#include "FileUtil.hpp"
+#include "File.hpp"
+
+#include <SDL3/SDL_main.h>
 
 extern "C" {
     __declspec(dllexport) extern const UINT D3D12SDKVersion = 614;
@@ -101,7 +103,7 @@ void HelloWorld::Render(ID3D12GraphicsCommandList* commandList, const GameTimer&
     // Set the root signature
     commandList->SetGraphicsRootSignature(RootSignature.get());
 
-    ID3D12DescriptorHeap* heaps[] = {CbvDescriptorHeap.get()};
+    ID3D12DescriptorHeap* heaps[] = { CbvDescriptorHeap.get() };
     commandList->SetDescriptorHeaps(_countof(heaps), heaps);
 
     commandList->SetGraphicsRootDescriptorTable(
@@ -174,7 +176,7 @@ void HelloWorld::CreateRootSignature()
     winrt::com_ptr<ID3DBlob> error;
     winrt::check_hresult(
         D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, signature.put(),
-                                              error.put()));
+            error.put()));
     winrt::check_hresult(Device->CreateRootSignature(
         0, signature->GetBufferPointer(), signature->GetBufferSize(),
         IID_PPV_ARGS(&RootSignature)));
@@ -192,15 +194,28 @@ void HelloWorld::CreatePipelineState()
     auto rasterDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
     rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
 
-    uint32_t vsSize, psSize;
-    auto vertexShader = FileUtil::ReadAllBytes("SimpleShaderVS.bin", &vsSize);
-    auto pixelShader = FileUtil::ReadAllBytes("SimpleShaderPS.bin", &psSize);
+
+    std::vector<std::byte> vertexShader;
+    std::vector<std::byte> pixelShader;
+    try
+    {
+        File vs("SimpleShaderVS.bin");
+        File ps("SimpleShaderPS.bin");
+
+        vertexShader = vs.ReadAll();
+        pixelShader = ps.ReadAll();
+    }
+    catch (const std::exception& e)
+    {
+
+    }
+
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-    psoDesc.InputLayout = {inputElementDesc, _countof(inputElementDesc)};
+    psoDesc.InputLayout = { inputElementDesc, _countof(inputElementDesc) };
     psoDesc.pRootSignature = RootSignature.get();
-    psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader, vsSize);
-    psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader, psSize);
+    psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.data(), vertexShader.size());
+    psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.data(), pixelShader.size());
     psoDesc.RasterizerState = rasterDesc;
     psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     psoDesc.DepthStencilState.DepthEnable = FALSE;
@@ -272,7 +287,7 @@ void HelloWorld::CreateBuffers()
         // Map and initialize the constant buffer. We don't unmap this until the
         // app closes. Keeping things mapped for the lifetime of the resource is okay
         winrt::check_hresult(ConstantBuffer->Map(0, &readRange,
-                                                 reinterpret_cast<void**>(&ConstantBufferDataBegin)));
+            reinterpret_cast<void**>(&ConstantBufferDataBegin)));
         memcpy(ConstantBufferDataBegin, &ConstantBufferData, sizeof(ConstantBufferData));
     }
 }
