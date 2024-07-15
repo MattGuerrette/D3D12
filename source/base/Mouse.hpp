@@ -19,7 +19,7 @@ class Mouse final
         int32_t X;
         int32_t Y;
     };
-    static constexpr int32_t MouseButtons = 3;
+    static constexpr int32_t MouseButtons = 5;
     using MouseButtonState = std::array<ButtonState, MouseButtons>;
 
 public:
@@ -40,6 +40,8 @@ public:
     [[nodiscard]] bool    RightClick() const;
 
     [[nodiscard]] bool    LeftPressed() const;
+
+    [[nodiscard]] bool RightPressed() const;
 
     /// @brief Checks if a right mouse button double-click has occurred.
     /// @return True if right button double-clicked, false otherwise.

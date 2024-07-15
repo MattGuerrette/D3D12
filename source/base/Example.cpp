@@ -650,22 +650,12 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 
 
         const auto elapsed = static_cast<float>(Timer.GetElapsedSeconds());
-        if (Keyboard->IsKeyPressed(SDL_SCANCODE_LSHIFT) && Mouse->LeftPressed())
+        if (Keyboard->IsKeyPressed(SDL_SCANCODE_LSHIFT) && Mouse->LeftPressed() && Mouse->RightPressed())
         {
-            if (!shouldWarp)
-            {
-                //Mouse->Warp();
-            }
-            //MainCamera->MoveForward(Mouse->WheelY() * 10.0f * elapsed);
             MainCamera->MoveForward(elapsed * Mouse->RelativeY());
         }
         else
         {
-            if (shouldWarp)
-            {
-                shouldWarp = false;
-            }
-
             MainCamera->RotateY(Mouse->WheelX() * 10.0f * elapsed);
         }
 
@@ -724,7 +714,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         //Mouse->Warp();
         Keyboard->Update();
         Mouse->Update();
-}
+    }
 #endif
 
     WaitForGpu();

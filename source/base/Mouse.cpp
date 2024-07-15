@@ -31,6 +31,11 @@ bool Mouse::RightClick() const
     return !CurrentState_[SDL_BUTTON_RIGHT].Pressed && PreviousState_[SDL_BUTTON_RIGHT].Pressed;
 }
 
+bool Mouse::RightPressed() const
+{
+    return CurrentState_[SDL_BUTTON_RIGHT].Pressed;
+}
+
 bool Mouse::RightDoubleClick() const
 {
     return (CurrentState_[SDL_BUTTON_RIGHT].Pressed && CurrentState_[SDL_BUTTON_RIGHT].IsDoubleClick);
