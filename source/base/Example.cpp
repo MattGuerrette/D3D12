@@ -90,7 +90,7 @@ namespace
 
 Example::Example(const char* title, uint32_t width, uint32_t height)
     : BackBufferIndex(0)
-      , BackBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM)
+      , BackBufferFormat(DXGI_FORMAT_R16G16B16A16_FLOAT)
       , DepthBufferFormat(DXGI_FORMAT_D32_FLOAT)
       , FactoryFlags(0)
 {

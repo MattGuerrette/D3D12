@@ -16,4 +16,4 @@ add_library(base STATIC
 )
 
 target_include_directories(base PUBLIC .)
-target_link_libraries(base PUBLIC ktx fmt DirectX-Headers SDL2::SDL2-static SDL2::SDL2main d3d12 dxgi dxguid)
+target_link_libraries(base PUBLIC fmt SDL2::SDL2-static SDL2::SDL2main Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility Microsoft::DirectStorage dxgi dxguid)

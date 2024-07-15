@@ -12,3 +12,4 @@ _deps
 cmake-build*/
 .vs/
 out/
+.idea/

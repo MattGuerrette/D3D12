@@ -27,7 +27,8 @@ float4 PsMain(const Input input, float3 baryWeights: SV_Barycentrics) : SV_TARGE
   {
     return float4(1.0f, 1.0f, 1.0f, 1.0f);
   }
-  else {
+  else
+  {
     return input.Color;
   }
 }

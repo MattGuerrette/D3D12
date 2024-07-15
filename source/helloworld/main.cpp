@@ -8,6 +8,14 @@
 #include "Example.hpp"
 #include "FileUtil.hpp"
 
+extern "C" {
+    __declspec(dllexport) extern const UINT D3D12SDKVersion = 614;
+}
+
+extern "C" {
+    __declspec(dllexport) extern const auto* D3D12SDKPath = u8".\\D3D12\\";
+}
+
 using namespace DirectX;
 
 XM_ALIGNED_STRUCT(16) Vertex
@@ -25,6 +33,8 @@ class HelloWorld final : public Example
 {
 public:
     HelloWorld();
+    HelloWorld(const HelloWorld& other) = delete;
+    HelloWorld& operator=(const HelloWorld& other) = delete;
 
     ~HelloWorld() override;
 
@@ -136,7 +146,7 @@ void HelloWorld::UpdateUniforms()
 
 void HelloWorld::CreateRootSignature()
 {
-    D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+    D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData;
     featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
     if (FAILED(Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
     {
@@ -198,7 +208,7 @@ void HelloWorld::CreatePipelineState()
     psoDesc.SampleMask = UINT_MAX;
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     psoDesc.NumRenderTargets = 1;
-    psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    psoDesc.RTVFormats[0] = BackBufferFormat;
     psoDesc.SampleDesc.Count = 1;
     winrt::check_hresult(
         Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&PipelineState)));
@@ -253,7 +263,7 @@ void HelloWorld::CreateBuffers()
             IID_PPV_ARGS(&ConstantBuffer)));
 
         // Describe and create a constant buffer view.
-        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
         cbvDesc.BufferLocation = ConstantBuffer->GetGPUVirtualAddress();
         cbvDesc.SizeInBytes = constantBufferSize;
         Device->CreateConstantBufferView(
