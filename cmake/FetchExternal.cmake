@@ -1,14 +1,5 @@
 include(FetchContent)
 
-FetchContent_Declare(sal
-        GIT_REPOSITORY "https://github.com/MattGuerrette/sal.git"
-        GIT_TAG main
-)
-
-FetchContent_Declare(directxmath
-        GIT_REPOSITORY "https://github.com/Microsoft/DirectXMath.git"
-        GIT_TAG dec2022
-)
 
 FetchContent_Declare(imgui
         GIT_REPOSITORY "https://github.com/ocornut/imgui.git"
@@ -33,6 +24,6 @@ FetchContent_Declare(
         GIT_TAG v1.10
 )
 
-FetchContent_MakeAvailable(sal directxmath fmt imgui sdl3 cgltf)
+FetchContent_MakeAvailable(fmt imgui sdl3 cgltf)
 
-include_directories(${sal_SOURCE_DIR} ${cgltf_SOURCE_DIR} ${directxmath_SOURCE_DIR}/Inc)
+include_directories(${cgltf_SOURCE_DIR})

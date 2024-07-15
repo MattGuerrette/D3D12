@@ -9,6 +9,7 @@ add_library(base STATIC
         GameTimer.cpp
         GameTimer.cpp
         SimpleMath.cpp
+        D3D12Context.cpp
         Example.hpp
         Example.cpp
         File.cpp
