@@ -196,8 +196,8 @@ void HelloWorld::CreatePipelineState()
     auto rasterDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
     rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
 
-    std::vector<std::byte> vertexShader;
-    std::vector<std::byte> pixelShader;
+    std::vector<uint8_t> vertexShader;
+    std::vector<uint8_t> pixelShader;
     try
     {
         File vs("SimpleShaderVS.bin");

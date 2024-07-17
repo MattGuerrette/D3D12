@@ -87,17 +87,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height) : m_width(w
         abort();
     }
 
-    int        numDisplays = 0;
-    const auto displays = SDL_GetDisplays(&numDisplays);
-    assert(numDisplays != 0);
-
-    const auto mode = SDL_GetDesktopDisplayMode(displays[0]);
-    width = mode->w;
-    height = mode->h;
-    SDL_free(displays);
-
-    int flags = SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_RESIZABLE;
-
+    int flags = SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE;
     m_window = SDL_CreateWindow(title, (int)width, (int)height, flags);
     if (!m_window)
     {

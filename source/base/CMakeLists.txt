@@ -16,4 +16,6 @@ add_library(base STATIC
  "File.cpp")
 
 target_include_directories(base PUBLIC .)
-target_link_libraries(base PUBLIC fmt SDL3::SDL3-static Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility Microsoft::DirectStorage dxgi dxguid)
+target_link_libraries(base PUBLIC 
+    fmt SDL3::SDL3-static Microsoft::DirectX-Headers Microsoft::DirectX-Guids
+    Microsoft::DirectX12-Agility Microsoft::DirectXTK12 Microsoft::DirectStorage dxgi dxguid)

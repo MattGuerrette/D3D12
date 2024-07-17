@@ -39,13 +39,13 @@ File::~File()
     m_pStream = nullptr;
 }
 
-std::vector<std::byte> File::ReadAll() const
+std::vector<uint8_t> File::ReadAll() const
 {
     SDL_SeekIO(m_pStream, 0, SDL_IO_SEEK_END);
     const auto numBytes = SDL_TellIO(m_pStream);
     SDL_SeekIO(m_pStream, 0, SDL_IO_SEEK_SET);
 
-    std::vector<std::byte> bytes(numBytes);
+    std::vector<uint8_t> bytes(numBytes);
 
     size_t numBytesRead;
     void* data = SDL_LoadFile_IO(m_pStream, &numBytesRead, SDL_FALSE);

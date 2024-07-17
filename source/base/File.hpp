@@ -15,7 +15,7 @@ public:
 
     ~File();
 
-    [[nodiscard]] std::vector<std::byte> ReadAll() const;
+    [[nodiscard]] std::vector<uint8_t> ReadAll() const;
 
 private:
     SDL_IOStream* m_pStream;
