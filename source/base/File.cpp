@@ -13,7 +13,6 @@ namespace {
     {
         const auto basePath = SDL_GetBasePath();
         std::filesystem::path path = std::string(basePath);
-        SDL_free(basePath);
 
         path.append(fileName);
         return path.string();
@@ -48,7 +47,7 @@ std::vector<std::byte> File::ReadAll() const
     std::vector<std::byte> bytes(numBytes);
 
     size_t numBytesRead;
-    void* data = SDL_LoadFile_IO(m_pStream, &numBytesRead, SDL_FALSE);
+    void* data = SDL_LoadFile_IO(m_pStream, &numBytesRead, false);
     if (data == nullptr)
     {
         throw std::runtime_error("Failed to read from stream");

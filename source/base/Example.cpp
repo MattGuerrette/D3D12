@@ -81,7 +81,7 @@ namespace
 
 Example::Example(const char* title, uint32_t width, uint32_t height) : m_width(width), m_height(height)
 {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER) != 0)
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
     {
         fprintf(stderr, "Failed to initialize SDL.\n");
         abort();
