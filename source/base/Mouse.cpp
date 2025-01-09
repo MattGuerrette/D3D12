@@ -9,7 +9,8 @@
 Mouse::Mouse(SDL_Window* window) : Window_(window)
 {
     // Enable relative mouse location tracking for deltas
-    // SDL_SetRelativeMouseMode(SDL_TRUE);
+    //SDL_SetWindowRelativeMouseMode()
+    //SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
 bool Mouse::LeftClick() const

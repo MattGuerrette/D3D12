@@ -66,6 +66,7 @@ private:
     SceneConstantBuffer                  m_constBufferData;
     UINT8*                               m_constBufferDataBegin;
     float                                m_rotationY = 0.0f;
+    float                                m_rotationX = 0.0f;
 };
 
 HelloWorld::HelloWorld(bool fullscreen)
@@ -90,6 +91,8 @@ bool HelloWorld::Load()
 
     CreatePipelineState();
 
+    SDL_HideCursor();
+
     return true;
 }
 
@@ -97,10 +100,15 @@ void HelloWorld::Update(const GameTimer& timer)
 {
     const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
 
-    if (m_mouse->LeftPressed())
-    {
-        m_rotationY += static_cast<float>(m_mouse->RelativeX()) * elapsed;
-    }
+    SDL_WarpMouseInWindow(m_window, GetFrameWidth() / 2, GetFrameHeight() / 2);
+
+    m_rotationX -= m_mouse->RelativeX() * elapsed;
+    m_rotationY -= m_mouse->RelativeY() * elapsed;
+
+    m_camera->rotate(m_rotationY, m_rotationX);
+
+    // Clamp m_rotationX between 75 degrees and -75 degrees
+    m_rotationY = std::clamp(m_rotationY, -XMConvertToRadians(75.0f), XMConvertToRadians(75.0f));
 }
 
 void HelloWorld::Render(ID3D12GraphicsCommandList* commandList, const GameTimer& timer)
@@ -132,7 +140,7 @@ void HelloWorld::UpdateUniforms()
 {
     auto position = Vector3(0.0f, 0.0, -10.0f);
     auto rotationX = 0.0f;
-    auto rotationY = m_rotationY;
+    auto rotationY = 0.0f;
     auto scaleFactor = 3.0f;
 
     const Vector3 xAxis = Vector3::Right;
@@ -146,7 +154,7 @@ void HelloWorld::UpdateUniforms()
     Matrix scale = Matrix::CreateScale(scaleFactor);
     Matrix model = scale * rotation * translation;
 
-    m_constBufferData.ModelViewProjection = model * m_camera->ViewProjection();
+    m_constBufferData.ModelViewProjection = model * m_camera->viewProjection();
     memcpy(m_constBufferDataBegin, &m_constBufferData, sizeof(m_constBufferData));
 }
 

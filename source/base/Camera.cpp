@@ -1,71 +1,134 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) Matt Guerrette 2023-2025
-// SPDX-License-Identifier: MIT
-////////////////////////////////////////////////////////////////////////////////
+
 
 #include "Camera.hpp"
 
-Camera::Camera(
-    const Vector3 position, const float fov, const float aspectRatio, const float nearPlane, const float farPlane)
-    : m_position(position), m_direction(Vector3::Forward), m_fieldOfView(fov), m_aspectRatio(aspectRatio),
-      m_nearPlane(nearPlane), m_farPlane(farPlane)
+Camera::Camera(Vector3 position,
+               Vector3 direction,
+               Vector3 up,
+               float   fov,
+               float   aspectRatio,
+               float   nearPlane,
+               float   farPlane,
+               float   viewWidth,
+               float   viewHeight)
+    : m_position(position), m_direction(direction), m_fieldOfView(fov), m_aspectRatio(aspectRatio),
+      m_nearPlane(nearPlane), m_farPlane(farPlane), m_viewWidth(viewWidth), m_viewHeight(viewHeight)
 {
-    UpdateUniforms();
+    updateUniforms();
 }
 
-void Camera::MoveForward(float dt)
+void Camera::setProjection(const float fov,
+                           const float aspectRatio,
+                           const float nearPlane,
+                           const float farPlane,
+                           const float viewWidth,
+                           const float viewHeight)
 {
-    m_position += Direction() * dt * m_speed;
-    UpdateUniforms();
+    m_fieldOfView = fov;
+    m_aspectRatio = aspectRatio;
+    m_nearPlane = nearPlane;
+    m_farPlane = farPlane;
+    m_viewWidth = viewWidth;
+    m_viewHeight = viewHeight;
+    updateUniforms();
 }
 
-void Camera::MoveBackward(float dt)
+Matrix Camera::viewProjection() const
 {
-    m_position -= Direction() * dt * m_speed;
-    UpdateUniforms();
+    return m_view * m_projection;
 }
 
-void Camera::StrafeLeft(float dt)
+float Camera::viewWidth() const
 {
-    m_position += Right() * dt * m_speed;
-    UpdateUniforms();
+    return m_viewWidth;
 }
 
-void Camera::StrafeRight(float dt)
+float Camera::viewHeight() const
 {
-    m_position -= Right() * dt * m_speed;
-    UpdateUniforms();
+    return m_viewHeight;
 }
 
-Vector3 Camera::Direction() const
+void Camera::moveForward(const float dt)
 {
-    return Vector3::Transform(m_direction, m_orientation);
+    Vector3 forward = direction();
+    forward.y = 0.0f; // Lock movement to the x and z axes
+    forward.Normalize();
+    m_position += forward * dt * m_speed;
+    updateUniforms();
 }
 
-Vector3 Camera::Right() const
+void Camera::moveBackward(const float dt)
 {
-    return Vector3::Transform(-Vector3::Right, m_orientation);
+    Vector3 backward = direction();
+    backward.y = 0.0f; // Lock movement to the x and z axes
+    backward.Normalize();
+    m_position -= backward * dt * m_speed;
+    updateUniforms();
 }
 
-Vector3 Camera::Up() const
+void Camera::strafeLeft(const float dt)
 {
-    return Vector3::Transform(Vector3::Up, m_orientation);
+    auto _right = right();
+    _right.y = 0.0f;
+    m_position -= _right * dt * m_speed;
+    updateUniforms();
 }
 
-void Camera::RotateY(const float dt)
+void Camera::strafeRight(const float dt)
 {
-    const Quaternion rotation = Quaternion::CreateFromYawPitchRoll(dt, 0, 0);
-    m_direction = Vector3::Transform(Vector3::Forward, rotation);
-    UpdateUniforms();
+    auto _right = right();
+    _right.y = 0.0f;
+    m_position += _right * dt * m_speed;
+    updateUniforms();
 }
 
-Matrix Camera::ViewProjection() const
+void Camera::setPosition(const Vector3& position)
 {
-    return Matrix::CreateLookAt(m_position, m_position + Direction(), Up()) *
-           Matrix::CreatePerspectiveFieldOfView(m_fieldOfView, m_aspectRatio, m_nearPlane, m_farPlane);
+    m_position = position;
+    updateUniforms();
 }
 
-void Camera::UpdateUniforms()
+void Camera::setRotation(const Vector3& rotation)
 {
-    m_orientation = Quaternion::LookRotation(Direction(), Vector3::Up);
+    m_rotation = rotation;
+    updateUniforms();
+}
+
+void Camera::rotate(const float pitch, const float yaw)
+{
+    m_orientation = Quaternion::CreateFromYawPitchRoll(yaw, pitch, 0.0f);
+    m_orientation.Normalize();
+
+    updateUniforms();
+}
+
+Vector3 Camera::direction() const
+{
+    auto dir = Vector3::Transform(Vector3::Forward, m_orientation);
+    dir.Normalize();
+    return dir;
+}
+
+Vector3 Camera::right() const
+{
+    auto right = Vector3::Transform(Vector3::Right, m_orientation); // up().Cross(direction());
+    right.Normalize();
+    return right;
+}
+
+Vector3 Camera::up() const
+{
+    // auto up = Vector3::Transform(Vector3::Up, m_orientation);
+    // up.Normalize();
+    // auto right = up.Cross(direction());
+    // right.Normalize();
+    // auto result = direction().Cross(right);
+    return Vector3::Up;
+}
+
+void Camera::updateUniforms()
+{
+    m_view = Matrix::CreateLookAt(m_position, m_position + direction(), Vector3::Up);
+    m_projection = Matrix::CreatePerspectiveFieldOfView(m_fieldOfView, m_aspectRatio, m_nearPlane, m_farPlane);
+    m_viewProjection = m_view * m_projection;
 }

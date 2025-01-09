@@ -48,15 +48,12 @@ public:
 protected:
     static constexpr int FRAME_COUNT = 3;
 
+    SDL_Window*                   m_window;
     std::unique_ptr<Camera>       m_camera;
     std::unique_ptr<Keyboard>     m_keyboard;
     std::unique_ptr<Mouse>        m_mouse;
     std::unique_ptr<D3D12Context> m_context;
-
 private:
-    SDL_Window* m_window;
-    uint32_t    m_width;
-    uint32_t    m_height;
-    GameTimer   m_timer;
-    bool        m_running;
+    GameTimer m_timer;
+    bool      m_running;
 };

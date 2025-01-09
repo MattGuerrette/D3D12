@@ -79,7 +79,7 @@ namespace
     }
 } // namespace
 
-Example::Example(const char* title, uint32_t width, uint32_t height, bool fullscreen) : m_width(width), m_height(height)
+Example::Example(const char* title, uint32_t width, uint32_t height, const bool fullscreen)
 {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
     {
@@ -110,9 +110,6 @@ Example::Example(const char* title, uint32_t width, uint32_t height, bool fullsc
     }
     m_running = true;
 
-    m_width = width;
-    m_height = height;
-
     auto hwnd = static_cast<HWND>(
         SDL_GetPointerProperty(SDL_GetWindowProperties(m_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
     m_context = std::make_unique<D3D12Context>(hwnd);
@@ -129,7 +126,8 @@ Example::Example(const char* title, uint32_t width, uint32_t height, bool fullsc
     const float znear = 0.01f;
     const float zfar = 1000.0f;
 
-    m_camera = std::make_unique<Camera>(Vector3::Zero, fov, aspect, znear, zfar);
+    m_camera = std::make_unique<Camera>(Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, znear, zfar, 800.0f,
+                                        600.0f);
 }
 
 Example::~Example()
@@ -195,11 +193,7 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         const auto elapsed = static_cast<float>(m_timer.GetElapsedSeconds());
         if (m_keyboard->IsKeyPressed(SDL_SCANCODE_LSHIFT) && m_mouse->LeftPressed() && m_mouse->RightPressed())
         {
-            m_camera->MoveForward(elapsed * m_mouse->RelativeY());
-        }
-        else
-        {
-            m_camera->RotateY(m_mouse->WheelX() * 10.0f * elapsed);
+            m_camera->moveForward(elapsed * m_mouse->RelativeY());
         }
 
         if (m_keyboard->IsKeyClicked(SDL_SCANCODE_ESCAPE))
@@ -209,32 +203,32 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 
         if (m_keyboard->IsKeyPressed(SDL_SCANCODE_W))
         {
-            m_camera->MoveForward(elapsed);
+            m_camera->moveForward(elapsed);
         }
 
         if (m_keyboard->IsKeyPressed(SDL_SCANCODE_S))
         {
-            m_camera->MoveBackward(elapsed);
+            m_camera->moveBackward(elapsed);
         }
 
         if (m_keyboard->IsKeyPressed(SDL_SCANCODE_A))
         {
-            m_camera->StrafeLeft(elapsed);
+            m_camera->strafeLeft(elapsed);
         }
 
         if (m_keyboard->IsKeyPressed(SDL_SCANCODE_D))
         {
-            m_camera->StrafeRight(elapsed);
+            m_camera->strafeRight(elapsed);
         }
 
         if (m_keyboard->IsKeyPressed(SDL_SCANCODE_LEFT))
         {
-            m_camera->RotateY(elapsed);
+            m_camera->rotate(0.0f, elapsed);
         }
 
         if (m_keyboard->IsKeyPressed(SDL_SCANCODE_RIGHT))
         {
-            m_camera->RotateY(-elapsed);
+            m_camera->rotate(0.0f, -elapsed);
         }
 
         m_timer.Tick([this]() { Update(m_timer); });
