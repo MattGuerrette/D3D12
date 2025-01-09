@@ -1,6 +1,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) Matt Guerrette 2023.
+// Copyright (c) Matt Guerrette 2023-2025
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -8,55 +8,38 @@
 
 #include "GraphicsMath.hpp"
 
-XM_ALIGNED_STRUCT(16) CameraUniforms
-{
-	Matrix View;
-	Matrix Projection;
-	Matrix ViewProjection;
-	Matrix InvProjection;
-	Matrix InvView;
-	Matrix InvViewProjection;
-};
-
-/// @todo Improve this Camera class to use Quaternion rotation
 class Camera
 {
 public:
-	Camera(Vector3 position,
-		Vector3 direction,
-		Vector3 up,
-		float fov,
-		float aspectRatio,
-		float nearPlane,
-		float farPlane);
+    explicit Camera(Vector3 position, float fov, float aspectRatio, float nearPlane, float farPlane);
 
-	[[nodiscard]] const CameraUniforms& GetUniforms() const;
+    [[nodiscard]] Matrix ViewProjection() const;
 
-	void MoveForward(float dt);
+    [[nodiscard]] Vector3 Right() const;
 
-	void MoveBackward(float dt);
+    [[nodiscard]] Vector3 Up() const;
 
-	void StrafeLeft(float dt);
+    [[nodiscard]] Vector3 Direction() const;
 
-	void StrafeRight(float dt);
+    void MoveForward(float dt);
 
-	void RotateY(float dt);
+    void MoveBackward(float dt);
+
+    void StrafeLeft(float dt);
+
+    void StrafeRight(float dt);
+
+    void RotateY(float dt);
 
 private:
-	void UpdateBasisVectors(Vector3 direction);
+    void UpdateUniforms();
 
-	void UpdateUniforms();
-
-	CameraUniforms Uniforms{};
-	Vector3 Position;
-	Vector3 Right;
-	Vector3 Direction;
-	Vector3 Up;
-	Quaternion Rotation;
-	float FieldOfView;
-	float AspectRatio;
-	float NearPlane;
-	float FarPlane;
-	float Speed = 5.0f;
+    Quaternion m_orientation;
+    Vector3    m_position;
+    Vector3    m_direction;
+    float      m_fieldOfView;
+    float      m_aspectRatio;
+    float      m_nearPlane;
+    float      m_farPlane;
+    float      m_speed = 5.0f;
 };
-

@@ -36,7 +36,7 @@ XM_ALIGNED_STRUCT(256) SceneConstantBuffer
 class HelloWorld final : public Example
 {
 public:
-    HelloWorld();
+    explicit HelloWorld(bool fullscreen);
     HelloWorld(const HelloWorld& other) = delete;
     HelloWorld& operator=(const HelloWorld& other) = delete;
 
@@ -68,7 +68,8 @@ private:
     float                                m_rotationY = 0.0f;
 };
 
-HelloWorld::HelloWorld() : Example("Hello, Metal", 800, 600), m_vertexBufferView(), m_constBufferDataBegin(nullptr)
+HelloWorld::HelloWorld(bool fullscreen)
+    : Example("Hello, D3D12", 800, 600, fullscreen), m_vertexBufferView(), m_constBufferDataBegin(nullptr)
 {
 }
 
@@ -145,7 +146,7 @@ void HelloWorld::UpdateUniforms()
     Matrix scale = Matrix::CreateScale(scaleFactor);
     Matrix model = scale * rotation * translation;
 
-    m_constBufferData.ModelViewProjection = model * m_camera->GetUniforms().ViewProjection;
+    m_constBufferData.ModelViewProjection = model * m_camera->ViewProjection();
     memcpy(m_constBufferDataBegin, &m_constBufferData, sizeof(m_constBufferData));
 }
 
@@ -279,6 +280,17 @@ void HelloWorld::CreateBuffers()
 
 int main(const int argc, char** argv)
 {
-    const std::unique_ptr<HelloWorld> example = std::make_unique<HelloWorld>();
+    bool fullscreen = false;
+    if (argc > 1)
+    {
+        for (int i = 0; i < argc; i++)
+        {
+            if (strcmp(argv[i], "--fullscreen") == 0)
+            {
+                fullscreen = true;
+            }
+        }
+    }
+    const auto example = std::make_unique<HelloWorld>(fullscreen);
     return example->Run(argc, argv);
 }

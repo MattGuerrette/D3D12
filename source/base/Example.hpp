@@ -27,7 +27,7 @@
 class Example
 {
 public:
-    Example(const char* title, uint32_t width, uint32_t height);
+    explicit Example(const char* title, uint32_t width, uint32_t height, bool fullscreen = false);
 
     virtual ~Example();
 

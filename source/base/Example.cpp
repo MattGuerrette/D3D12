@@ -79,7 +79,7 @@ namespace
     }
 } // namespace
 
-Example::Example(const char* title, uint32_t width, uint32_t height) : m_width(width), m_height(height)
+Example::Example(const char* title, uint32_t width, uint32_t height, bool fullscreen) : m_width(width), m_height(height)
 {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
     {
@@ -87,18 +87,22 @@ Example::Example(const char* title, uint32_t width, uint32_t height) : m_width(w
         abort();
     }
 
-    int        numDisplays = 0;
-    const auto displays = SDL_GetDisplays(&numDisplays);
-    assert(numDisplays != 0);
+    int flags = SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE;
+    if (fullscreen)
+    {
+        int        numDisplays = 0;
+        const auto displays = SDL_GetDisplays(&numDisplays);
+        assert(numDisplays != 0);
 
-    const auto mode = SDL_GetDesktopDisplayMode(displays[0]);
-    width = mode->w;
-    height = mode->h;
-    SDL_free(displays);
+        const auto mode = SDL_GetDesktopDisplayMode(displays[0]);
+        width = mode->w;
+        height = mode->h;
+        SDL_free(displays);
 
-    int flags = SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_RESIZABLE;
+        flags |= SDL_WINDOW_FULLSCREEN;
+    }
 
-    m_window = SDL_CreateWindow(title, (int)width, (int)height, flags);
+    m_window = SDL_CreateWindow(title, static_cast<int>(width), static_cast<int>(height), flags);
     if (!m_window)
     {
         fprintf(stderr, "Failed to create SDL window.\n");
@@ -109,8 +113,8 @@ Example::Example(const char* title, uint32_t width, uint32_t height) : m_width(w
     m_width = width;
     m_height = height;
 
-    HWND hwnd =
-        (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(m_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+    auto hwnd = static_cast<HWND>(
+        SDL_GetPointerProperty(SDL_GetWindowProperties(m_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
     m_context = std::make_unique<D3D12Context>(hwnd);
     m_keyboard = std::make_unique<Keyboard>();
     m_mouse = std::make_unique<Mouse>(m_window);
@@ -125,7 +129,7 @@ Example::Example(const char* title, uint32_t width, uint32_t height) : m_width(w
     const float znear = 0.01f;
     const float zfar = 1000.0f;
 
-    m_camera = std::make_unique<Camera>(Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, znear, zfar);
+    m_camera = std::make_unique<Camera>(Vector3::Zero, fov, aspect, znear, zfar);
 }
 
 Example::~Example()
