@@ -48,10 +48,10 @@ public:
 protected:
     static constexpr int FRAME_COUNT = 3;
 
-    std::unique_ptr<Camera>         m_camera;
-    std::unique_ptr<class Keyboard> m_keyboard;
-    std::unique_ptr<class Mouse>    m_mouse;
-    std::unique_ptr<D3D12Context>   m_context;
+    std::unique_ptr<Camera>       m_camera;
+    std::unique_ptr<Keyboard>     m_keyboard;
+    std::unique_ptr<Mouse>        m_mouse;
+    std::unique_ptr<D3D12Context> m_context;
 
 private:
     SDL_Window* m_window;

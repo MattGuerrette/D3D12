@@ -1,23 +1,24 @@
 
 #include "File.hpp"
 
-#include <stdexcept>
 #include <filesystem>
+#include <stdexcept>
 
 #include <fmt/format.h>
 
 #include <SDL3/SDL.h>
 
-namespace {
-    inline std::string PathForResource(const char* fileName)
+namespace
+{
+    std::string PathForResource(const char* fileName)
     {
-        const auto basePath = SDL_GetBasePath();
+        const auto            basePath = SDL_GetBasePath();
         std::filesystem::path path = std::string(basePath);
 
         path.append(fileName);
         return path.string();
     }
-}
+} // namespace
 
 File::File(const char* fileName)
 {
@@ -47,7 +48,7 @@ std::vector<std::byte> File::ReadAll() const
     std::vector<std::byte> bytes(numBytes);
 
     size_t numBytesRead;
-    void* data = SDL_LoadFile_IO(m_pStream, &numBytesRead, false);
+    void*  data = SDL_LoadFile_IO(m_pStream, &numBytesRead, false);
     if (data == nullptr)
     {
         throw std::runtime_error("Failed to read from stream");
