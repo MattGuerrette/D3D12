@@ -60,13 +60,16 @@ private:
     winrt::com_ptr<ID3D12RootSignature>  m_rootSignature;
     winrt::com_ptr<ID3D12PipelineState>  m_pipelineState;
     winrt::com_ptr<ID3D12Resource>       m_vertexBuffer;
+    winrt::com_ptr<ID3D12Resource>       m_indexBuffer;
     winrt::com_ptr<ID3D12DescriptorHeap> m_cbvDescriptorHeap;
     D3D12_VERTEX_BUFFER_VIEW             m_vertexBufferView;
+    D3D12_INDEX_BUFFER_VIEW              m_indexBufferView;
     winrt::com_ptr<ID3D12Resource>       m_constBuffer;
     SceneConstantBuffer                  m_constBufferData;
     UINT8*                               m_constBufferDataBegin;
     float                                m_rotationY = 0.0f;
     float                                m_rotationX = 0.0f;
+    float                                m_cubeRotationY = 0.0f;
 };
 
 HelloWorld::HelloWorld(bool fullscreen)
@@ -109,6 +112,8 @@ void HelloWorld::Update(const GameTimer& timer)
 
     // Clamp m_rotationX between 75 degrees and -75 degrees
     m_rotationY = std::clamp(m_rotationY, -XMConvertToRadians(75.0f), XMConvertToRadians(75.0f));
+
+    m_cubeRotationY += elapsed;
 }
 
 void HelloWorld::Render(ID3D12GraphicsCommandList* commandList, const GameTimer& timer)
@@ -131,16 +136,18 @@ void HelloWorld::Render(ID3D12GraphicsCommandList* commandList, const GameTimer&
 
     // Set the vertex buffer
     commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+    // Set the index buffer
+    commandList->IASetIndexBuffer(&m_indexBufferView);
 
-    // Draw instanced
-    commandList->DrawInstanced(3, 1, 0, 0);
+    // Draw indexed geometry
+    commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 }
 
 void HelloWorld::UpdateUniforms()
 {
     auto position = Vector3(0.0f, 0.0, -10.0f);
     auto rotationX = 0.0f;
-    auto rotationY = 0.0f;
+    auto rotationY = m_cubeRotationY;
     auto scaleFactor = 3.0f;
 
     const Vector3 xAxis = Vector3::Right;
@@ -203,7 +210,8 @@ void HelloWorld::CreatePipelineState()
         {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
 
     auto rasterDesc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-    rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
+    rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
+    rasterDesc.FrontCounterClockwise = TRUE;
 
     std::vector<std::byte> vertexShader;
     std::vector<std::byte> pixelShader;
@@ -240,28 +248,86 @@ void HelloWorld::CreateBuffers()
 {
     ID3D12Device* device = m_context->Device();
 
-    // Define the geometry for a triangle.
-    constexpr Vertex triangleVertices[] = {{{0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
-                                           {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
-                                           {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}}};
+    // Define the geometry for a cube.
+    constexpr Vertex cubeVertices[] = {
+        // Front Face
+        {{-1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+        {{-1.0f, 1.0f, -1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+        {{1.0f, 1.0f, -1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+        {{1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}},
 
-    constexpr UINT vertexBufferSize = sizeof(triangleVertices);
+        // Back Face
+        {{-1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+        {{1.0f, -1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+        {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+        {{-1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}},
+
+        // Top Face
+        {{-1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+        {{-1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+        {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+        {{1.0f, 1.0f, -1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}},
+
+        // Bottom Face
+        {{-1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+        {{1.0f, -1.0f, -1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+        {{1.0f, -1.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+        {{-1.0f, -1.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}},
+
+        // Left Face
+        {{-1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+        {{-1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+        {{-1.0f, 1.0f, -1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+        {{-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}},
+
+        // Right Face
+        {{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+        {{1.0f, 1.0f, -1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+        {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+        {{1.0f, -1.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}},
+    };
+
+    // Define indices for a cube so that each triangle is front-facing
+    constexpr uint16_t cubeIndices[] = {
+        0,  1,  2,  0,  2,  3,  // Front Face
+        4,  5,  6,  4,  6,  7,  // Back Face
+        8,  9,  10, 8,  10, 11, // Top Face
+        12, 13, 14, 12, 14, 15, // Bottom Face
+        16, 17, 18, 16, 18, 19, // Left Face
+        20, 21, 22, 20, 22, 23  // Right Face
+    };
+
+    constexpr UINT vertexBufferSize = sizeof(cubeVertices);
     const auto     heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
     const auto     resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
     winrt::check_hresult(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &resourceDesc,
                                                          D3D12_RESOURCE_STATE_COMMON, nullptr,
                                                          IID_PPV_ARGS(&m_vertexBuffer)));
-
-    // Copy triangle data to vertex buffer
     UINT8*              vertexDataBegin;
     const CD3DX12_RANGE readRange(0, 0);
     winrt::check_hresult(m_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&vertexDataBegin)));
-    memcpy(vertexDataBegin, triangleVertices, sizeof(triangleVertices));
+    memcpy(vertexDataBegin, cubeVertices, sizeof(cubeVertices));
     m_vertexBuffer->Unmap(0, nullptr);
 
     m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
     m_vertexBufferView.StrideInBytes = sizeof(Vertex);
     m_vertexBufferView.SizeInBytes = vertexBufferSize;
+
+    constexpr UINT indexBufferSize = sizeof(cubeIndices);
+    const auto     indexHeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    const auto     indexResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize);
+    winrt::check_hresult(device->CreateCommittedResource(&indexHeapProps, D3D12_HEAP_FLAG_NONE, &indexResourceDesc,
+                                                         D3D12_RESOURCE_STATE_COMMON, nullptr,
+                                                         IID_PPV_ARGS(&m_indexBuffer)));
+
+    // Copy cube index data to index buffer
+    UINT8* indexDataBegin;
+    winrt::check_hresult(m_indexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&indexDataBegin)));
+    memcpy(indexDataBegin, cubeIndices, sizeof(cubeIndices));
+    m_indexBuffer->Unmap(0, nullptr);
+    m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
+    m_indexBufferView.Format = DXGI_FORMAT_R16_UINT;
+    m_indexBufferView.SizeInBytes = indexBufferSize;
 
     // Create the constant buffer.
     {
