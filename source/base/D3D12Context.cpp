@@ -13,13 +13,12 @@
 
 namespace
 {
-    void FindCompatibleAdapter(winrt::com_ptr<IDXGIFactory1> factory, IDXGIAdapter1** adapter)
+    void FindCompatibleAdapter(const winrt::com_ptr<IDXGIFactory1>& factory, IDXGIAdapter1** adapter)
     {
         *adapter = nullptr;
 
-        winrt::com_ptr<IDXGIAdapter1>       temp;
-        const winrt::com_ptr<IDXGIFactory6> factory6 = factory.as<IDXGIFactory6>();
-        if (factory6)
+        winrt::com_ptr<IDXGIAdapter1> temp;
+        if (const winrt::com_ptr<IDXGIFactory6> factory6 = factory.as<IDXGIFactory6>())
         {
             for (UINT index = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(
                      index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&temp)));
@@ -82,8 +81,6 @@ namespace
 D3D12Context::D3D12Context(HWND window) : m_backBufferFormat(DXGI_FORMAT_R16G16B16A16_FLOAT), m_window(window)
 
 {
-    const bool createForComposition = (window == nullptr);
-
     DWORD createFactoryFlags = 0;
 #ifdef _DEBUG
     winrt::com_ptr<ID3D12Debug> debugController;
@@ -162,6 +159,12 @@ D3D12Context::D3D12Context(HWND window) : m_backBufferFormat(DXGI_FORMAT_R16G16B
     CreateSurfaceResources();
 }
 
+D3D12Context::~D3D12Context()
+{
+    // Ensure swapchain is not in fullscreen state (ALT-ENTER) before releasing
+    winrt::check_hresult(m_swapChain->SetFullscreenState(FALSE, nullptr));
+}
+
 void D3D12Context::BeginFrame()
 {
     WaitForGpuFence(m_frameFence[m_currentBackBufferIndex].get(), m_frameFenceValue[m_currentBackBufferIndex],
@@ -170,7 +173,7 @@ void D3D12Context::BeginFrame()
     // TODO: Update ConstantBuffers here
 
     // Wait until all queued frames are finished
-    WaitForSingleObjectEx(m_frameLatencyWaitable.get(), INFINITE, FALSE);
+    WaitForSingleObjectEx(m_frameLatencyAwaitable.get(), INFINITE, FALSE);
 
     PrepareWork(m_commandAllocator[m_currentBackBufferIndex].get(), m_commandList[m_currentBackBufferIndex].get());
 }
@@ -241,7 +244,7 @@ void D3D12Context::Present()
 {
     winrt::check_hresult(m_swapChain->Present(1, 0));
 
-    m_commandQueue->Signal(m_frameFence[m_currentBackBufferIndex].get(), m_currentFenceValue);
+    winrt::check_hresult(m_commandQueue->Signal(m_frameFence[m_currentBackBufferIndex].get(), m_currentFenceValue));
     m_frameFenceValue[m_currentBackBufferIndex] = m_currentFenceValue;
     ++m_currentFenceValue;
 
@@ -260,14 +263,14 @@ void D3D12Context::CreateSurfaceResources()
     RECT rect;
     GetClientRect(m_window, &rect);
 
-    const UINT        width = static_cast<UINT>(rect.right - rect.left);
-    const UINT        height = static_cast<UINT>(rect.bottom - rect.top);
-    const DXGI_FORMAT depthStencilFormat = DXGI_FORMAT_D32_FLOAT;
+    const UINT width = static_cast<UINT>(rect.right - rect.left);
+    const UINT height = static_cast<UINT>(rect.bottom - rect.top);
 
     m_viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
     m_scissorRect = CD3DX12_RECT(rect.left, rect.top, rect.right, rect.bottom);
 
-    const auto swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+    constexpr auto swapChainFlags =
+        DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
     if (m_swapChain)
     {
         // TODO: Handle device lost
@@ -293,7 +296,7 @@ void D3D12Context::CreateSurfaceResources()
                                                                nullptr, swapChain.put()));
         m_swapChain = swapChain.as<IDXGISwapChain3>();
 
-        m_frameLatencyWaitable.attach(m_swapChain->GetFrameLatencyWaitableObject());
+        m_frameLatencyAwaitable.attach(m_swapChain->GetFrameLatencyWaitableObject());
     }
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDescriptor(m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
@@ -305,7 +308,7 @@ void D3D12Context::CreateSurfaceResources()
         winrt::check_hresult(m_renderTarget[i]->SetName(name.c_str()));
 
         D3D12_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
-        renderTargetViewDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        renderTargetViewDesc.Format = m_backBufferFormat;
         renderTargetViewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
         m_device->CreateRenderTargetView(m_renderTarget[i].get(), &renderTargetViewDesc, rtvDescriptor);
 
@@ -336,6 +339,13 @@ void D3D12Context::CreateSurfaceResources()
                                      m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
+void D3D12Context::ResizeSwapChain()
+{
+    WaitForGpuCompletion();
+
+    CreateSurfaceResources();
+}
+
 void D3D12Context::WaitForGpuCompletion()
 {
     winrt::check_hresult(m_commandQueue->Signal(m_frameFence[m_currentBackBufferIndex].get(), m_currentFenceValue));
@@ -351,6 +361,11 @@ ID3D12Device* D3D12Context::Device() const
     return m_device.get();
 }
 
+ID3D12CommandQueue* D3D12Context::CommandQueue() const
+{
+    return m_commandQueue.get();
+}
+
 ID3D12GraphicsCommandList* D3D12Context::CommandList() const
 {
     return m_commandList[m_currentBackBufferIndex].get();
@@ -359,4 +374,16 @@ ID3D12GraphicsCommandList* D3D12Context::CommandList() const
 DXGI_FORMAT D3D12Context::BackBufferFormat() const
 {
     return m_backBufferFormat;
+}
+
+const D3D12Context::StaticSamplers D3D12Context::Samplers() const
+{
+
+    const CD3DX12_STATIC_SAMPLER_DESC linearWrap(0,                                // shaderRegister
+                                                 D3D12_FILTER_MIN_MAG_MIP_LINEAR,  // filter
+                                                 D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+                                                 D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+                                                 D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+    return {linearWrap};
 }

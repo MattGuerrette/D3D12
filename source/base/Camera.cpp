@@ -111,19 +111,9 @@ Vector3 Camera::direction() const
 
 Vector3 Camera::right() const
 {
-    auto right = Vector3::Transform(Vector3::Right, m_orientation); // up().Cross(direction());
+    auto right = Vector3::Transform(Vector3::Right, m_orientation);
     right.Normalize();
     return right;
-}
-
-Vector3 Camera::up() const
-{
-    // auto up = Vector3::Transform(Vector3::Up, m_orientation);
-    // up.Normalize();
-    // auto right = up.Cross(direction());
-    // right.Normalize();
-    // auto result = direction().Cross(right);
-    return Vector3::Up;
 }
 
 void Camera::updateUniforms()

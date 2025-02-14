@@ -33,14 +33,14 @@ XM_ALIGNED_STRUCT(256) SceneConstantBuffer
     Matrix ModelViewProjection;
 };
 
-class HelloWorld final : public Example
+class HelloMesh final : public Example
 {
 public:
-    explicit HelloWorld(bool fullscreen);
-    HelloWorld(const HelloWorld& other) = delete;
-    HelloWorld& operator=(const HelloWorld& other) = delete;
+    explicit HelloMesh(bool fullscreen);
+    HelloMesh(const HelloMesh& other) = delete;
+    HelloMesh& operator=(const HelloMesh& other) = delete;
 
-    ~HelloWorld() override;
+    ~HelloMesh() override;
 
     bool Load() override;
 
@@ -72,14 +72,14 @@ private:
     float                                m_cubeRotationY = 0.0f;
 };
 
-HelloWorld::HelloWorld(bool fullscreen)
+HelloMesh::HelloMesh(bool fullscreen)
     : Example("Hello, D3D12", 800, 600, fullscreen), m_vertexBufferView(), m_constBufferDataBegin(nullptr)
 {
 }
 
-HelloWorld::~HelloWorld() = default;
+HelloMesh::~HelloMesh() = default;
 
-bool HelloWorld::Load()
+bool HelloMesh::Load()
 {
     D3D12_DESCRIPTOR_HEAP_DESC cbvDescriptorHeapDesc = {};
     cbvDescriptorHeapDesc.NumDescriptors = 1;
@@ -99,7 +99,7 @@ bool HelloWorld::Load()
     return true;
 }
 
-void HelloWorld::Update(const GameTimer& timer)
+void HelloMesh::Update(const GameTimer& timer)
 {
     const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
 
@@ -116,7 +116,7 @@ void HelloWorld::Update(const GameTimer& timer)
     m_cubeRotationY += elapsed;
 }
 
-void HelloWorld::Render(ID3D12GraphicsCommandList* commandList, const GameTimer& timer)
+void HelloMesh::Render(ID3D12GraphicsCommandList* commandList, const GameTimer& timer)
 {
     UpdateUniforms();
 
@@ -143,7 +143,7 @@ void HelloWorld::Render(ID3D12GraphicsCommandList* commandList, const GameTimer&
     commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 }
 
-void HelloWorld::UpdateUniforms()
+void HelloMesh::UpdateUniforms()
 {
     auto position = Vector3(0.0f, 0.0, -10.0f);
     auto rotationX = 0.0f;
@@ -165,7 +165,7 @@ void HelloWorld::UpdateUniforms()
     memcpy(m_constBufferDataBegin, &m_constBufferData, sizeof(m_constBufferData));
 }
 
-void HelloWorld::CreateRootSignature()
+void HelloMesh::CreateRootSignature()
 {
     ID3D12Device* device = m_context->Device();
 
@@ -200,7 +200,7 @@ void HelloWorld::CreateRootSignature()
                                                      IID_PPV_ARGS(&m_rootSignature)));
 }
 
-void HelloWorld::CreatePipelineState()
+void HelloMesh::CreatePipelineState()
 {
     ID3D12Device* device = m_context->Device();
 
@@ -244,7 +244,7 @@ void HelloWorld::CreatePipelineState()
     winrt::check_hresult(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
-void HelloWorld::CreateBuffers()
+void HelloMesh::CreateBuffers()
 {
     ID3D12Device* device = m_context->Device();
 
@@ -365,6 +365,6 @@ int main(const int argc, char** argv)
             }
         }
     }
-    const auto example = std::make_unique<HelloWorld>(fullscreen);
+    const auto example = std::make_unique<HelloMesh>(fullscreen);
     return example->Run(argc, argv);
 }

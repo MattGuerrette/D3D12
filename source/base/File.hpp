@@ -2,10 +2,9 @@
 // Copyright (c) Matt Guerrette 2023-2025
 // SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
-///
+
 #pragma once
 
-#include <string>
 #include <vector>
 
 #include <SDL3/SDL_iostream.h>
@@ -19,7 +18,7 @@ public:
 
     ~File();
 
-    [[nodiscard]] std::vector<std::byte> ReadAll() const;
+    [[nodiscard]] std::vector<uint8_t> ReadAll() const;
 
 private:
     SDL_IOStream* m_pStream;

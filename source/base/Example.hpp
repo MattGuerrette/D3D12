@@ -7,14 +7,6 @@
 
 #include <SDL3/SDL.h>
 
-#include <winrt/base.h>
-
-#include <directx/d3d12.h>
-#include <directx/d3dx12.h>
-#include <dstorage.h>
-#include <dxgi1_6.h>
-#include <dxgidebug.h>
-
 #include <memory>
 #include <string>
 
@@ -53,6 +45,7 @@ protected:
     std::unique_ptr<Keyboard>     m_keyboard;
     std::unique_ptr<Mouse>        m_mouse;
     std::unique_ptr<D3D12Context> m_context;
+
 private:
     GameTimer m_timer;
     bool      m_running;
