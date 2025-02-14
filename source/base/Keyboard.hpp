@@ -10,7 +10,6 @@
 
 #include <SDL3/SDL.h>
 
-
 class Keyboard final
 {
     using KeyState = std::map<SDL_Scancode, bool>;
@@ -28,7 +27,7 @@ public:
 
     /// @brief Registers key event.
     /// @param [in] event The key event.
-    void RegisterKeyEvent(SDL_KeyboardEvent* event);
+    void RegisterKeyEvent(const SDL_KeyboardEvent* event);
 
     /// @brief Updates the state cache for next frame.
     void Update();
@@ -37,4 +36,3 @@ private:
     KeyState PreviousKeyState_{}; ///< Previous frame key-state.
     KeyState CurrentKeyState_{};  ///< Current frame key-state.
 };
-

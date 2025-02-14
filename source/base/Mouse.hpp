@@ -9,8 +9,7 @@
 
 #include <SDL3/SDL.h>
 
-
-    /// @brief A simple Mouse class for accessing the input device state.
+/// @brief A simple Mouse class for accessing the input device state.
 class Mouse final
 {
     struct ButtonState
@@ -30,23 +29,23 @@ public:
 
     /// @brief Checks if a left mouse button click has occurred.
     /// @return True if left button clicked, false otherwise.
-    [[nodiscard]] bool    LeftClick() const;
+    [[nodiscard]] bool LeftClick() const;
 
     /// @brief Checks if a left mouse button double-click as occurred.
     /// @return True if left button double-clicked, false otherwise.
-    [[nodiscard]] bool    LeftDoubleClick() const;
+    [[nodiscard]] bool LeftDoubleClick() const;
 
     /// @brief Checks if a right mouse button click has occurred.
     /// @return True if right button clicked, false otherwise.
-    [[nodiscard]] bool    RightClick() const;
+    [[nodiscard]] bool RightClick() const;
 
-    [[nodiscard]] bool    LeftPressed() const;
+    [[nodiscard]] bool LeftPressed() const;
 
     [[nodiscard]] bool RightPressed() const;
 
     /// @brief Checks if a right mouse button double-click has occurred.
     /// @return True if right button double-clicked, false otherwise.
-    [[nodiscard]] bool    RightDoubleClick() const;
+    [[nodiscard]] bool RightDoubleClick() const;
 
     /// @brief Gets the mouse X coordinate location.
     /// @return X coordinate.
@@ -66,32 +65,32 @@ public:
 
     /// @brief Gets the precise scroll-wheel movement in X axis.
     /// @return Precise scroll-wheel movement in X axis.
-    [[nodiscard]] float   WheelX() const;
+    [[nodiscard]] float WheelX() const;
 
     /// @brief Gets the precise scroll-wheel movement in Y axis.
     /// @return Precise scroll-wheel movement in Y axis.
-    [[nodiscard]] float   WheelY() const;
+    [[nodiscard]] float WheelY() const;
 
     /// @brief Constrains (warps) the mouse cursor to center of window.
-    void                  Warp();
+    void Warp() const;
 
     /// @brief Registers mouse motion event.
     /// @param [in] event The mouse motion event.
-    void                  RegisterMouseMotion(SDL_MouseMotionEvent* event);
+    void RegisterMouseMotion(const SDL_MouseMotionEvent* event);
 
     /// @brief Register mouse wheel event.
     /// @param [in] event The mouse wheel event.
-    void                  RegisterMouseWheel(SDL_MouseWheelEvent* event);
+    void RegisterMouseWheel(const SDL_MouseWheelEvent* event);
 
     /// @brief Registers mouse button event.
     /// @param [in] event The mouse button event.
-    void                  RegisterMouseButton(SDL_MouseButtonEvent* event);
+    void RegisterMouseButton(const SDL_MouseButtonEvent* event);
 
     /// @brief Updates the state cache for next frame.
-    void                  Update();
+    void Update();
 
 private:
-    SDL_Window* Window_;          //< Window used to warp cursor to.
+    SDL_Window*      Window_;          //< Window used to warp cursor to.
     int32_t          LocationX_{};     //< X mouse location.
     int32_t          LocationY_{};     //< Y mouse location.
     int32_t          RelativeX_{};     //< X mouse location relative to last frame.
@@ -101,4 +100,3 @@ private:
     MouseButtonState CurrentState_{};  //< Current frame mouse button state.
     MouseButtonState PreviousState_{}; //< Previous frame mouse button state.
 };
-

@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include <array>
+#include <cstdint>
+
 #include <directx/d3d12.h>
 #include <directx/d3dx12.h>
 #include <dxgi1_6.h>
@@ -19,7 +22,11 @@ class D3D12Context final
     static constexpr UINT FRAME_COUNT = 3;
 
 public:
+    using StaticSamplers = std::array<const CD3DX12_STATIC_SAMPLER_DESC, 1>;
+
     explicit D3D12Context(HWND window);
+
+    ~D3D12Context();
 
     ID3D12Device*                 Device() const;
     ID3D12CommandQueue*           CommandQueue() const;
@@ -29,6 +36,7 @@ public:
     CD3DX12_CPU_DESCRIPTOR_HANDLE RenderTargetView() const;
     CD3DX12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
     DXGI_FORMAT                   BackBufferFormat() const;
+    const StaticSamplers          Samplers() const;
 
     void BeginFrame();
 
@@ -37,6 +45,8 @@ public:
     void Present();
 
     void WaitForGpuCompletion();
+
+    void ResizeSwapChain();
 
 private:
     void PrepareWork(ID3D12CommandAllocator* commandAllocator, ID3D12GraphicsCommandList* commandList);
@@ -65,7 +75,7 @@ private:
 #ifdef _DEBUG
     winrt::com_ptr<IDXGIInfoQueue> m_infoQueue;
 #endif
-    winrt::handle               m_frameLatencyWaitable;
+    winrt::handle               m_frameLatencyAwaitable;
     winrt::com_ptr<ID3D12Fence> m_frameFence[FRAME_COUNT];
     winrt::handle               m_frameFenceEvent[FRAME_COUNT];
     UINT64                      m_frameFenceValue[FRAME_COUNT]{0};

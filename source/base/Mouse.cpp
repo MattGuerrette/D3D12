@@ -5,12 +5,11 @@
 
 #include "Mouse.hpp"
 
-
 Mouse::Mouse(SDL_Window* window) : Window_(window)
 {
     // Enable relative mouse location tracking for deltas
-    //SDL_SetWindowRelativeMouseMode()
-    //SDL_SetRelativeMouseMode(SDL_TRUE);
+    // SDL_SetWindowRelativeMouseMode()
+    // SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
 bool Mouse::LeftClick() const
@@ -77,14 +76,14 @@ float Mouse::WheelY() const
     return PreciseWheelY_;
 }
 
-void Mouse::Warp()
+void Mouse::Warp() const
 {
     int32_t w, h;
     SDL_GetWindowSize(Window_, &w, &h);
     SDL_WarpMouseInWindow(Window_, w / 2, h / 2);
 }
 
-void Mouse::RegisterMouseMotion(SDL_MouseMotionEvent* event)
+void Mouse::RegisterMouseMotion(const SDL_MouseMotionEvent* event)
 {
     LocationX_ = event->x;
     LocationY_ = event->y;
@@ -92,18 +91,18 @@ void Mouse::RegisterMouseMotion(SDL_MouseMotionEvent* event)
     RelativeY_ = event->yrel;
 }
 
-void Mouse::RegisterMouseWheel(SDL_MouseWheelEvent* event)
+void Mouse::RegisterMouseWheel(const SDL_MouseWheelEvent* event)
 {
     PreciseWheelX_ = event->x;
     PreciseWheelY_ = event->y;
 }
 
-void Mouse::RegisterMouseButton(SDL_MouseButtonEvent* event)
+void Mouse::RegisterMouseButton(const SDL_MouseButtonEvent* event)
 {
-    CurrentState_[event->button] = { .IsDoubleClick = event->clicks > 1,
-                                   .Pressed = event->down,
-                                   .X = static_cast<int32_t>(event->x),
-                                   .Y = static_cast<int32_t>(event->y) };
+    CurrentState_[event->button] = {.IsDoubleClick = event->clicks > 1,
+                                    .Pressed = event->down,
+                                    .X = static_cast<int32_t>(event->x),
+                                    .Y = static_cast<int32_t>(event->y)};
 }
 
 void Mouse::Update()

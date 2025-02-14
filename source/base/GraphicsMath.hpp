@@ -13,11 +13,10 @@
 #endif
 #endif
 
-#include <DirectXMath.h>
 #include <DirectXColors.h>
+#include <DirectXMath.h>
 
 #include "SimpleMath.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
-

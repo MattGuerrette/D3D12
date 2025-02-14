@@ -25,8 +25,6 @@ public:
 
     [[nodiscard]] Vector3 direction() const;
 
-    [[nodiscard]] Vector3 up() const;
-
     [[nodiscard]] Vector3 right() const;
 
     void moveForward(float dt);

@@ -9,76 +9,6 @@
 
 #include <fmt/format.h>
 
-static bool shouldWarp = false;
-
-namespace
-{
-    void FindCompatibleAdapter(IDXGIAdapter1** adapter, const winrt::com_ptr<IDXGIFactory4>& factory)
-    {
-        *adapter = nullptr;
-
-        winrt::com_ptr<IDXGIAdapter1>       temp;
-        const winrt::com_ptr<IDXGIFactory6> factory6 = factory.as<IDXGIFactory6>();
-        if (factory6)
-        {
-            for (UINT index = 0; SUCCEEDED(
-                     factory6->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_UNSPECIFIED, IID_PPV_ARGS(&temp)));
-                 index++)
-            {
-                DXGI_ADAPTER_DESC1 desc;
-                winrt::check_hresult(temp->GetDesc1(&desc));
-
-                // Ignore software devices
-                if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                {
-                    continue;
-                }
-
-#ifdef _DEBUG
-                // const std::string message = fmt::format("Direct3D Adapter ({}): VID:{}, PID:{} - %{}", index,
-                //                                         desc.VendorId,
-                //                                         desc.DeviceId, desc.Description);
-                // OutputDebugStringA(message.c_str());
-#endif
-
-                break;
-            }
-        }
-
-        if (!temp)
-        {
-            temp = nullptr;
-            for (UINT adapterIndex = 0; SUCCEEDED(factory->EnumAdapters1(adapterIndex, temp.put())); adapterIndex++)
-            {
-                DXGI_ADAPTER_DESC1 desc;
-                winrt::check_hresult(temp->GetDesc1(&desc));
-
-                if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-                {
-                    // Don't select the Basic Render Driver adapter.
-                    continue;
-                }
-
-#ifdef _DEBUG
-                wchar_t buff[256] = {};
-                swprintf_s(buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId,
-                           desc.DeviceId, desc.Description);
-                OutputDebugStringW(buff);
-#endif
-
-                break;
-            }
-        }
-
-        if (!temp)
-        {
-            throw std::runtime_error("No Direct3D device found.");
-        }
-
-        *adapter = temp.detach();
-    }
-} // namespace
-
 Example::Example(const char* title, uint32_t width, uint32_t height, const bool fullscreen)
 {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
@@ -119,15 +49,15 @@ Example::Example(const char* title, uint32_t width, uint32_t height, const bool 
     // Timer.SetTargetElapsedSeconds(1.0f / static_cast<float>(mode.refresh_rate));
     m_timer.SetFixedTimeStep(false);
 
-    const auto  actualWidth = GetFrameWidth();
-    const auto  actualHeight = GetFrameHeight();
-    const float aspect = (float)actualWidth / (float)actualHeight;
-    const float fov = XMConvertToRadians(75.0f);
-    const float znear = 0.01f;
-    const float zfar = 1000.0f;
+    const auto      actualWidth = GetFrameWidth();
+    const auto      actualHeight = GetFrameHeight();
+    const float     aspect = static_cast<float>(actualWidth) / static_cast<float>(actualHeight);
+    constexpr float fov = XMConvertToRadians(75.0f);
+    constexpr float nearPlane = 0.01f;
+    constexpr float farPlane = 1000.0f;
 
-    m_camera = std::make_unique<Camera>(Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, znear, zfar, 800.0f,
-                                        600.0f);
+    m_camera = std::make_unique<Camera>(Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, nearPlane, farPlane,
+                                        800.0f, 600.0f);
 }
 
 Example::~Example()
@@ -170,6 +100,19 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
             {
                 m_running = false;
                 continue;
+            }
+
+            if (e.type == SDL_EVENT_WINDOW_RESIZED)
+            {
+                m_context->ResizeSwapChain();
+
+                const auto      actualWidth = GetFrameWidth();
+                const auto      actualHeight = GetFrameHeight();
+                const float     aspect = static_cast<float>(actualWidth) / static_cast<float>(actualHeight);
+                constexpr float fov = XMConvertToRadians(75.0f);
+                constexpr float nearPlane = 0.01f;
+                constexpr float farPlane = 1000.0f;
+                m_camera->setProjection(fov, aspect, nearPlane, farPlane, actualWidth, actualHeight);
             }
 
             if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP)
