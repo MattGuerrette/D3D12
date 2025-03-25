@@ -10,7 +10,7 @@
 class Texture
 {
 public:
-    explicit Texture(const std::string& filename);
+    explicit Texture(const wchar_t* filename);
 
     void Upload(ID3D12Device* device, ID3D12CommandQueue* commandQueue);
     void AddToDescriptorHeap(ID3D12Device* device, ID3D12DescriptorHeap* descriptorHeap, size_t index);

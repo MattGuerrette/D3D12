@@ -5,85 +5,68 @@
 
 #include "Example.hpp"
 
-#include <SDL3/SDL_properties.h>
+#include <format>
 
-#include <fmt/format.h>
+using namespace DirectX::SimpleMath;
 
-Example::Example(const char* title, uint32_t width, uint32_t height, const bool fullscreen)
+LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+Example::Example(const wchar_t* title, uint32_t width, uint32_t height, const bool fullscreen)
 {
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
-    {
-        fprintf(stderr, "Failed to initialize SDL.\n");
-        abort();
-    }
+    WNDCLASSEXW wcex = {};
+    wcex.cbSize = sizeof(WNDCLASSEXW);
+    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc = WndProc;
+    wcex.hInstance = GetModuleHandle(nullptr);
+    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wcex.lpszClassName = L"Example";
+    RegisterClassExW(&wcex);
 
-    int flags = SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE;
-    if (fullscreen)
-    {
-        int        numDisplays = 0;
-        const auto displays = SDL_GetDisplays(&numDisplays);
-        assert(numDisplays != 0);
+    RECT rc = {0, 0, static_cast<LONG>(width), static_cast<LONG>(height)};
+    AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
-        const auto mode = SDL_GetDesktopDisplayMode(displays[0]);
-        width = mode->w;
-        height = mode->h;
-        SDL_free(displays);
+    m_window = CreateWindowW(L"Example", title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left,
+                             rc.bottom - rc.top, nullptr, nullptr, GetModuleHandle(nullptr), nullptr);
+    ShowWindow(m_window, SW_SHOW);
 
-        flags |= SDL_WINDOW_FULLSCREEN;
-    }
+    SetWindowLongPtr(m_window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
-    m_window = SDL_CreateWindow(title, static_cast<int>(width), static_cast<int>(height), flags);
-    if (!m_window)
-    {
-        fprintf(stderr, "Failed to create SDL window.\n");
-        abort();
-    }
     m_running = true;
-
-    auto hwnd = static_cast<HWND>(
-        SDL_GetPointerProperty(SDL_GetWindowProperties(m_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-    m_context = std::make_unique<D3D12Context>(hwnd);
-    m_keyboard = std::make_unique<Keyboard>();
-    m_mouse = std::make_unique<Mouse>(m_window);
-
-    // Timer.SetTargetElapsedSeconds(1.0f / static_cast<float>(mode.refresh_rate));
-    m_timer.SetFixedTimeStep(false);
+    m_context = std::make_unique<D3D12Context>(m_window);
 
     const auto      actualWidth = GetFrameWidth();
     const auto      actualHeight = GetFrameHeight();
     const float     aspect = static_cast<float>(actualWidth) / static_cast<float>(actualHeight);
-    constexpr float fov = XMConvertToRadians(75.0f);
+    constexpr float fov = DirectX::XMConvertToRadians(75.0f);
     constexpr float nearPlane = 0.01f;
     constexpr float farPlane = 1000.0f;
-
     m_camera = std::make_unique<Camera>(Vector3::Zero, Vector3::Forward, Vector3::Up, fov, aspect, nearPlane, farPlane,
                                         800.0f, 600.0f);
+    m_keyboard = std::make_unique<DirectX::Keyboard>();
+    m_mouse = std::make_unique<DirectX::Mouse>();
+    m_mouse->SetWindow(m_window);
 }
 
 Example::~Example()
 {
-    if (m_window != nullptr)
-    {
-        SDL_DestroyWindow(m_window);
-    }
-    SDL_Quit();
+    DestroyWindow(m_window);
 }
 
 uint32_t Example::GetFrameWidth() const
 {
-    int32_t w;
-    SDL_GetWindowSizeInPixels(m_window, &w, nullptr);
-    return w;
+    RECT rect = {};
+    GetClientRect(m_window, &rect);
+    return rect.right - rect.left;
 }
 
 uint32_t Example::GetFrameHeight() const
 {
-    int32_t h;
-    SDL_GetWindowSizeInPixels(m_window, nullptr, &h);
-    return h;
+    RECT rect = {};
+    GetClientRect(m_window, &rect);
+    return rect.bottom - rect.top;
 }
 
-int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
+int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] wchar_t** argv)
 {
     if (!Load())
     {
@@ -92,89 +75,52 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 
     while (m_running)
     {
-        SDL_Event e;
-
-        while (SDL_PollEvent(&e))
+        MSG msg = {};
+        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
-            if (e.type == SDL_EVENT_QUIT)
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
+        m_timer.Tick([this]() {
+            Update(m_timer);
+
+            auto lastKb = m_keyboardTracker.GetLastState();
+            auto kb = m_keyboard->GetState();
+
+            auto ms = m_mouse->GetState();
+            auto lastMs = m_mouseTracker.GetLastState();
+
+            if (kb.Escape && !lastKb.Escape)
             {
-                m_running = false;
-                continue;
+                Quit();
             }
 
-            if (e.type == SDL_EVENT_WINDOW_RESIZED)
-            {
-                m_context->ResizeSwapChain();
+            const auto elapsed = m_timer.ElapsedSeconds();
 
-                const auto      actualWidth = GetFrameWidth();
-                const auto      actualHeight = GetFrameHeight();
-                const float     aspect = static_cast<float>(actualWidth) / static_cast<float>(actualHeight);
-                constexpr float fov = XMConvertToRadians(75.0f);
-                constexpr float nearPlane = 0.01f;
-                constexpr float farPlane = 1000.0f;
-                m_camera->setProjection(fov, aspect, nearPlane, farPlane, actualWidth, actualHeight);
+            if (kb.W)
+            {
+                m_camera->moveForward(elapsed);
             }
 
-            if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP)
+            if (kb.S)
             {
-                m_keyboard->RegisterKeyEvent(&e.key);
+                m_camera->moveBackward(elapsed);
             }
-            if (e.type == SDL_EVENT_MOUSE_BUTTON_UP || e.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+
+            if (kb.A)
             {
-                m_mouse->RegisterMouseButton(&e.button);
+                m_camera->strafeLeft(elapsed);
             }
-            if (e.type == SDL_EVENT_MOUSE_MOTION)
+
+            if (kb.D)
             {
-                m_mouse->RegisterMouseMotion(&e.motion);
+                m_camera->strafeRight(elapsed);
             }
-            if (e.type == SDL_EVENT_MOUSE_WHEEL)
-            {
-                m_mouse->RegisterMouseWheel(&e.wheel);
-            }
-        }
 
-        const auto elapsed = static_cast<float>(m_timer.GetElapsedSeconds());
-        if (m_keyboard->IsKeyPressed(SDL_SCANCODE_LSHIFT) && m_mouse->LeftPressed() && m_mouse->RightPressed())
-        {
-            m_camera->moveForward(elapsed * m_mouse->RelativeY());
-        }
-
-        if (m_keyboard->IsKeyClicked(SDL_SCANCODE_ESCAPE))
-        {
-            Quit();
-        }
-
-        if (m_keyboard->IsKeyPressed(SDL_SCANCODE_W))
-        {
-            m_camera->moveForward(elapsed);
-        }
-
-        if (m_keyboard->IsKeyPressed(SDL_SCANCODE_S))
-        {
-            m_camera->moveBackward(elapsed);
-        }
-
-        if (m_keyboard->IsKeyPressed(SDL_SCANCODE_A))
-        {
-            m_camera->strafeLeft(elapsed);
-        }
-
-        if (m_keyboard->IsKeyPressed(SDL_SCANCODE_D))
-        {
-            m_camera->strafeRight(elapsed);
-        }
-
-        if (m_keyboard->IsKeyPressed(SDL_SCANCODE_LEFT))
-        {
-            m_camera->rotate(0.0f, elapsed);
-        }
-
-        if (m_keyboard->IsKeyPressed(SDL_SCANCODE_RIGHT))
-        {
-            m_camera->rotate(0.0f, -elapsed);
-        }
-
-        m_timer.Tick([this]() { Update(m_timer); });
+            m_keyboardTracker.Update(kb);
+            m_mouseTracker.Update(ms);
+        });
 
         m_context->BeginFrame();
 
@@ -182,9 +128,6 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
         Render(commandList, m_timer);
 
         m_context->EndFrame();
-
-        m_keyboard->Update();
-        m_mouse->Update();
     }
 
     m_context->WaitForGpuCompletion();
@@ -195,4 +138,81 @@ int Example::Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 void Example::Quit()
 {
     m_running = false;
+}
+
+void Example::OnResize()
+{
+    if (!m_context)
+        return;
+
+    m_context->WaitForGpuCompletion();
+
+    m_context->ResizeSwapChain();
+
+    const auto      actualWidth = GetFrameWidth();
+    const auto      actualHeight = GetFrameHeight();
+    const float     aspect = static_cast<float>(actualWidth) / static_cast<float>(actualHeight);
+    constexpr float fov = DirectX::XMConvertToRadians(75.0f);
+    constexpr float nearPlane = 0.01f;
+    constexpr float farPlane = 1000.0f;
+    m_camera->setProjection(fov, aspect, nearPlane, farPlane, actualWidth, actualHeight);
+}
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    auto example = reinterpret_cast<Example*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    switch (message)
+    {
+    case WM_CLOSE:
+        example->Quit();
+        break;
+
+    case WM_ACTIVATE:
+    case WM_INPUT:
+    case WM_MOUSEMOVE:
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONUP:
+    case WM_MOUSEWHEEL:
+    case WM_XBUTTONDOWN:
+    case WM_XBUTTONUP:
+    case WM_MOUSEHOVER:
+        DirectX::Mouse::ProcessMessage(message, wParam, lParam);
+        break;
+
+    case WM_KEYDOWN:
+    case WM_KEYUP:
+    case WM_SYSKEYUP:
+    case WM_SYSKEYDOWN:
+        DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
+        break;
+
+    case WM_ACTIVATEAPP:
+        if (example)
+        {
+            DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
+            DirectX::Mouse::ProcessMessage(message, wParam, lParam);
+        }
+        break;
+
+    case WM_SIZE: {
+        if (!example)
+            break;
+
+        UINT width = LOWORD(lParam);
+        UINT height = HIWORD(lParam);
+        if (width != 0 && height != 0)
+        {
+            example->OnResize();
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    return DefWindowProcW(hwnd, message, wParam, lParam);
 }

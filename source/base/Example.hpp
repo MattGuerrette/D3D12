@@ -5,31 +5,33 @@
 
 #pragma once
 
-#include <SDL3/SDL.h>
-
 #include <memory>
 #include <string>
+
+#include <Windows.h>
+#include <directxtk12/Keyboard.h>
+#include <directxtk12/Mouse.h>
 
 #include "Camera.hpp"
 #include "D3D12Context.hpp"
 #include "GameTimer.hpp"
-#include "Keyboard.hpp"
-#include "Mouse.hpp"
 
 class Example
 {
 public:
-    explicit Example(const char* title, uint32_t width, uint32_t height, bool fullscreen = false);
+    explicit Example(const wchar_t* title, uint32_t width, uint32_t height, bool fullscreen = false);
 
     virtual ~Example();
 
-    int Run([[maybe_unused]] int argc, [[maybe_unused]] char** argv);
+    int Run([[maybe_unused]] int argc, [[maybe_unused]] wchar_t** argv);
 
     void Quit();
 
     [[nodiscard]] uint32_t GetFrameWidth() const;
 
     [[nodiscard]] uint32_t GetFrameHeight() const;
+
+    void OnResize();
 
     virtual bool Load() = 0;
 
@@ -40,11 +42,13 @@ public:
 protected:
     static constexpr int FRAME_COUNT = 3;
 
-    SDL_Window*                   m_window;
-    std::unique_ptr<Camera>       m_camera;
-    std::unique_ptr<Keyboard>     m_keyboard;
-    std::unique_ptr<Mouse>        m_mouse;
-    std::unique_ptr<D3D12Context> m_context;
+    HWND                                    m_window;
+    std::unique_ptr<Camera>                 m_camera;
+    std::unique_ptr<D3D12Context>           m_context;
+    std::unique_ptr<DirectX::Keyboard>      m_keyboard;
+    DirectX::Keyboard::KeyboardStateTracker m_keyboardTracker;
+    std::unique_ptr<DirectX::Mouse>         m_mouse;
+    DirectX::Mouse::ButtonStateTracker      m_mouseTracker;
 
 private:
     GameTimer m_timer;

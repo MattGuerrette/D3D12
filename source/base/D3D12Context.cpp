@@ -7,10 +7,6 @@
 
 #include <DirectXColors.h>
 
-#include <fmt/xchar.h>
-
-#include <fmt/format.h>
-
 namespace
 {
     void FindCompatibleAdapter(const winrt::com_ptr<IDXGIFactory1>& factory, IDXGIAdapter1** adapter)
@@ -133,20 +129,20 @@ D3D12Context::D3D12Context(HWND window) : m_backBufferFormat(DXGI_FORMAT_R16G16B
         winrt::check_hresult(
             m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator[i])));
 
-        std::wstring name = fmt::format(L"D3D12Context::CommandAllocator{}", i);
+        std::wstring name = std::format(L"D3D12Context::CommandAllocator{0}", i);
         winrt::check_hresult(m_commandAllocator[i]->SetName(name.c_str()));
 
         winrt::check_hresult(m_device->CreateCommandList1(
             0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&m_commandList[i])));
 
-        name = fmt::format(L"D3D12Context::CommandList{}", i);
+        name = std::format(L"D3D12Context::CommandList{0}", i);
         winrt::check_hresult(m_commandList[i]->SetName(name.c_str()));
 
         winrt::check_hresult(
             m_device->CreateFence(m_frameFenceValue[i], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_frameFence[i])));
         m_frameFenceValue[i] = 0;
 
-        name = fmt::format(L"D3D12Context::FrameFence{}", i);
+        name = std::format(L"D3D12Context::FrameFence{0}", i);
         winrt::check_hresult(m_frameFence[i]->SetName(name.c_str()));
 
         m_frameFenceEvent[i].attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
@@ -304,7 +300,7 @@ void D3D12Context::CreateSurfaceResources()
     {
         winrt::check_hresult(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_renderTarget[i])));
 
-        std::wstring name = fmt::format(L"D3D12Context::RenderTarget{}", i);
+        std::wstring name = std::format(L"D3D12Context::RenderTarget{0}", i);
         winrt::check_hresult(m_renderTarget[i]->SetName(name.c_str()));
 
         D3D12_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};

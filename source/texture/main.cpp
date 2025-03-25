@@ -9,14 +9,15 @@
 #include "File.hpp"
 #include "Texture.hpp"
 
-#include <SDL3/SDL_main.h>
-
+#include <DirectXColors.h>
 #include <DDSTextureLoader.h>
 #include <ResourceUploadBatch.h>
 
+using namespace DirectX::SimpleMath;
+
 extern "C"
 {
-    __declspec(dllexport) extern const UINT D3D12SDKVersion = 614;
+    __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
 }
 
 extern "C"
@@ -83,7 +84,7 @@ private:
     float                                 m_cubeRotationY = 0.0f;
 };
 
-HelloTexture::HelloTexture(bool fullscreen) : Example("Hello, Texture", 800, 600, fullscreen)
+HelloTexture::HelloTexture(bool fullscreen) : Example(L"Hello, Texture", 800, 600, fullscreen)
 {
 }
 
@@ -97,8 +98,8 @@ bool HelloTexture::Load()
 
     CreatePipelineState();
 
-    m_textures.push_back(std::make_unique<Texture>("dirt.dds"));
-    m_textures.push_back(std::make_unique<Texture>("bricks.dds"));
+    m_textures.push_back(std::make_unique<Texture>(L"dirt.dds"));
+    m_textures.push_back(std::make_unique<Texture>(L"bricks.dds"));
 
     D3D12_DESCRIPTOR_HEAP_DESC srvDescriptorHeapDesc = {};
     srvDescriptorHeapDesc.NumDescriptors = m_textures.size();
@@ -113,19 +114,20 @@ bool HelloTexture::Load()
         m_textures[i]->AddToDescriptorHeap(m_context->Device(), m_srvDescriptorHeap.get(), i);
     }
 
-    SDL_HideCursor();
-
     return true;
 }
 
 void HelloTexture::Update(const GameTimer& timer)
 {
-    const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
+    const auto elapsed = static_cast<float>(timer.ElapsedSeconds());
 
-    SDL_WarpMouseInWindow(m_window, GetFrameWidth() / 2, GetFrameHeight() / 2);
+    m_mouse->SetMode(DirectX::Mouse::MODE_RELATIVE);
+    // SDL_WarpMouseInWindow(m_window, GetFrameWidth() / 2, GetFrameHeight() / 2);
 
-    m_rotationX -= m_mouse->RelativeX() * elapsed;
-    m_rotationY -= m_mouse->RelativeY() * elapsed;
+    auto ms = m_mouse->GetState();
+
+    m_rotationX -= ms.x * elapsed;
+    m_rotationY -= ms.y * elapsed;
 
     m_camera->rotate(m_rotationY, m_rotationX);
 
@@ -137,7 +139,7 @@ void HelloTexture::Update(const GameTimer& timer)
 
 void HelloTexture::Render(ID3D12GraphicsCommandList* commandList, const GameTimer& timer)
 {
-    const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
+    const auto elapsed = static_cast<float>(timer.ElapsedSeconds());
 
     UpdateUniforms(elapsed);
 
@@ -254,11 +256,11 @@ void HelloTexture::CreatePipelineState()
     std::vector<uint8_t> pixelShader;
     try
     {
-        File vs("SimpleShaderVS.bin");
-        File ps("SimpleShaderPS.bin");
+        File vs(L"SimpleShaderVS.bin");
+        File ps(L"SimpleShaderPS.bin");
 
-        vertexShader = vs.ReadAll();
-        pixelShader = ps.ReadAll();
+        vertexShader = vs.Data();
+        pixelShader = ps.Data();
     }
     catch (const std::exception& e)
     {
@@ -400,19 +402,23 @@ void HelloTexture::LoadTexture()
     printf("Test\n");*/
 }
 
-int main(const int argc, char** argv)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+    int     argc;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+
     bool fullscreen = false;
     if (argc > 1)
     {
         for (int i = 0; i < argc; i++)
         {
-            if (strcmp(argv[i], "--fullscreen") == 0)
+            if (wcscmp(argv[i], L"--fullscreen") == 0)
             {
                 fullscreen = true;
             }
         }
     }
+
     const auto example = std::make_unique<HelloTexture>(fullscreen);
     return example->Run(argc, argv);
 }

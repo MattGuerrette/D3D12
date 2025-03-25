@@ -5,14 +5,22 @@
 
 #include <memory>
 
+#include <directx/d3d12.h>
+#include <directx/d3dx12.h>
+
+#include <DirectXMath.h>
+#include <SimpleMath.h>
+
 #include "Example.hpp"
+#include "D3D12Context.hpp"
+#include "GameTimer.hpp"
 #include "File.hpp"
 
-#include <SDL3/SDL_main.h>
+using namespace DirectX::SimpleMath;
 
 extern "C"
 {
-    __declspec(dllexport) extern const UINT D3D12SDKVersion = 614;
+    __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
 }
 
 extern "C"
@@ -24,23 +32,23 @@ using namespace DirectX;
 
 XM_ALIGNED_STRUCT(16) Vertex
 {
-    Vector3 Position;
-    Vector4 Color;
+    DirectX::SimpleMath::Vector3 Position;
+    DirectX::SimpleMath::Vector4 Color;
 };
 
 XM_ALIGNED_STRUCT(256) SceneConstantBuffer
 {
-    Matrix ModelViewProjection;
+    DirectX::SimpleMath::Matrix ModelViewProjection;
 };
 
-class HelloMesh final : public Example
+class HelloWorld final : public Example
 {
 public:
-    explicit HelloMesh(bool fullscreen);
-    HelloMesh(const HelloMesh& other) = delete;
-    HelloMesh& operator=(const HelloMesh& other) = delete;
+    explicit HelloWorld(bool fullscreen);
+    HelloWorld(const HelloWorld& other) = delete;
+    HelloWorld& operator=(const HelloWorld& other) = delete;
 
-    ~HelloMesh() override;
+    ~HelloWorld() override;
 
     bool Load() override;
 
@@ -57,6 +65,7 @@ private:
 
     void UpdateUniforms();
 
+    HWND                                 m_hwnd;
     winrt::com_ptr<ID3D12RootSignature>  m_rootSignature;
     winrt::com_ptr<ID3D12PipelineState>  m_pipelineState;
     winrt::com_ptr<ID3D12Resource>       m_vertexBuffer;
@@ -72,14 +81,14 @@ private:
     float                                m_cubeRotationY = 0.0f;
 };
 
-HelloMesh::HelloMesh(bool fullscreen)
-    : Example("Hello, D3D12", 800, 600, fullscreen), m_vertexBufferView(), m_constBufferDataBegin(nullptr)
+HelloWorld::HelloWorld(bool fullscreen)
+    : Example(L"Hello, D3D12", 800, 600, fullscreen), m_vertexBufferView(), m_constBufferDataBegin(nullptr)
 {
 }
 
-HelloMesh::~HelloMesh() = default;
+HelloWorld::~HelloWorld() = default;
 
-bool HelloMesh::Load()
+bool HelloWorld::Load()
 {
     D3D12_DESCRIPTOR_HEAP_DESC cbvDescriptorHeapDesc = {};
     cbvDescriptorHeapDesc.NumDescriptors = 1;
@@ -94,19 +103,17 @@ bool HelloMesh::Load()
 
     CreatePipelineState();
 
-    SDL_HideCursor();
-
     return true;
 }
 
-void HelloMesh::Update(const GameTimer& timer)
+void HelloWorld::Update(const GameTimer& timer)
 {
-    const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
+    const auto elapsed = static_cast<float>(timer.ElapsedSeconds());
 
-    SDL_WarpMouseInWindow(m_window, GetFrameWidth() / 2, GetFrameHeight() / 2);
+    //SDL_WarpMouseInWindow(m_window, GetFrameWidth() / 2, GetFrameHeight() / 2);
 
-    m_rotationX -= m_mouse->RelativeX() * elapsed;
-    m_rotationY -= m_mouse->RelativeY() * elapsed;
+    //m_rotationX -= m_mouse->RelativeX() * elapsed;
+    //m_rotationY -= m_mouse->RelativeY() * elapsed;
 
     m_camera->rotate(m_rotationY, m_rotationX);
 
@@ -116,7 +123,7 @@ void HelloMesh::Update(const GameTimer& timer)
     m_cubeRotationY += elapsed;
 }
 
-void HelloMesh::Render(ID3D12GraphicsCommandList* commandList, const GameTimer& timer)
+void HelloWorld::Render(ID3D12GraphicsCommandList* commandList, const GameTimer& timer)
 {
     UpdateUniforms();
 
@@ -143,7 +150,7 @@ void HelloMesh::Render(ID3D12GraphicsCommandList* commandList, const GameTimer& 
     commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 }
 
-void HelloMesh::UpdateUniforms()
+void HelloWorld::UpdateUniforms()
 {
     auto position = Vector3(0.0f, 0.0, -10.0f);
     auto rotationX = 0.0f;
@@ -165,7 +172,7 @@ void HelloMesh::UpdateUniforms()
     memcpy(m_constBufferDataBegin, &m_constBufferData, sizeof(m_constBufferData));
 }
 
-void HelloMesh::CreateRootSignature()
+void HelloWorld::CreateRootSignature()
 {
     ID3D12Device* device = m_context->Device();
 
@@ -200,7 +207,7 @@ void HelloMesh::CreateRootSignature()
                                                      IID_PPV_ARGS(&m_rootSignature)));
 }
 
-void HelloMesh::CreatePipelineState()
+void HelloWorld::CreatePipelineState()
 {
     ID3D12Device* device = m_context->Device();
 
@@ -213,15 +220,15 @@ void HelloMesh::CreatePipelineState()
     rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
     rasterDesc.FrontCounterClockwise = TRUE;
 
-    std::vector<std::byte> vertexShader;
-    std::vector<std::byte> pixelShader;
+    std::vector<uint8_t> vertexShader;
+    std::vector<uint8_t> pixelShader;
     try
     {
-        File vs("SimpleShaderVS.bin");
-        File ps("SimpleShaderPS.bin");
+        File vs(L"SimpleShaderVS.bin");
+        File ps(L"SimpleShaderPS.bin");
 
-        vertexShader = vs.ReadAll();
-        pixelShader = ps.ReadAll();
+        vertexShader = vs.Data();
+        pixelShader = ps.Data();
     }
     catch (const std::exception& e)
     {
@@ -244,7 +251,7 @@ void HelloMesh::CreatePipelineState()
     winrt::check_hresult(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
-void HelloMesh::CreateBuffers()
+void HelloWorld::CreateBuffers()
 {
     ID3D12Device* device = m_context->Device();
 
@@ -352,19 +359,22 @@ void HelloMesh::CreateBuffers()
     }
 }
 
-int main(const int argc, char** argv)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+    int argc;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+
     bool fullscreen = false;
     if (argc > 1)
     {
         for (int i = 0; i < argc; i++)
         {
-            if (strcmp(argv[i], "--fullscreen") == 0)
+            if (wcscmp(argv[i], L"--fullscreen") == 0)
             {
                 fullscreen = true;
             }
         }
     }
-    const auto example = std::make_unique<HelloMesh>(fullscreen);
+    const auto example = std::make_unique<HelloWorld>(fullscreen);
     return example->Run(argc, argv);
 }

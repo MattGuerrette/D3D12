@@ -1,13 +1,13 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) Matt Guerrette 2023-2025
-// SPDX-License-Identifier: MIT
+// Copyright (c) 2023-2024. Matt Guerrette. All rights reserved.
 ////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
 
-#include <SDL3/SDL.h>
-
 #include <algorithm>
+#include <chrono>
+
+using namespace std::chrono_literals;
 
 class GameTimer
 {
@@ -18,17 +18,17 @@ public:
 
     ~GameTimer() = default;
 
-    [[nodiscard]] uint64_t GetElapsedTicks() const noexcept;
+    [[nodiscard]] uint64_t ElapsedTicks() const noexcept;
 
-    [[nodiscard]] double GetElapsedSeconds() const noexcept;
+    [[nodiscard]] double ElapsedSeconds() const noexcept;
 
-    [[nodiscard]] uint64_t GetTotalTicks() const noexcept;
+    [[nodiscard]] uint64_t TotalTicks() const noexcept;
 
-    [[nodiscard]] double GetTotalSeconds() const noexcept;
+    [[nodiscard]] double TotalSeconds() const noexcept;
 
-    [[nodiscard]] uint32_t GetFrameCount() const noexcept;
+    [[nodiscard]] uint32_t FrameCount() const noexcept;
 
-    [[nodiscard]] uint32_t GetFramesPerSecond() const noexcept;
+    [[nodiscard]] uint32_t FramesPerSecond() const noexcept;
 
     void SetFixedTimeStep(bool isFixedTimeStep) noexcept;
 
@@ -38,59 +38,73 @@ public:
 
     void ResetElapsedTime();
 
+    /// @brief Updates the game timer and calls the provided update function.
+    ///
+    /// This function is responsible for calculating the time elapsed since the last update,
+    /// updating the game timer's internal state, and calling the provided update function.
+    /// It also keeps track of the frame count and frames per second.
+    ///
+    /// @tparam TUpdate The type of the update function.
+    /// @param [in] update The update function to be called.
     template <typename TUpdate>
     void Tick(const TUpdate& update)
     {
-        const uint64_t currentTime = SDL_GetPerformanceCounter();
 
-        uint64_t delta = currentTime - QpcLastTime;
-        QpcLastTime = currentTime;
-        QpcSecondCounter += delta;
+        auto now = std::chrono::steady_clock::now();
+        auto now_in_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(now);
+        auto epoch = now_in_ns.time_since_epoch();
+        auto value = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch);
 
-        delta = std::clamp(delta, static_cast<uint64_t>(0), QpcMaxDelta);
+        const uint64_t currentTime = static_cast<uint64_t>(value.count());
+
+        uint64_t delta = currentTime - QpcLastTime_;
+        QpcLastTime_ = currentTime;
+        QpcSecondCounter_ += delta;
+
+        delta = std::clamp(delta, static_cast<uint64_t>(0), QpcMaxDelta_);
         delta *= TicksPerSecond;
-        delta /= static_cast<uint64_t>(QpcFrequency);
+        delta /= static_cast<uint64_t>(QpcFrequency_);
 
-        const uint32_t lastFrameCount = FrameCount;
-        if (IsFixedTimeStep)
+        const uint32_t lastFrameCount = FrameCount_;
+        if (IsFixedTimeStep_)
         {
-            if (static_cast<uint64_t>(std::abs(static_cast<int64_t>(delta - TargetElapsedTicks))) <
+            if (static_cast<uint64_t>(std::abs(static_cast<int64_t>(delta - TargetElapsedTicks_))) <
                 TicksPerSecond / 4000)
             {
-                delta = TargetElapsedTicks;
+                delta = TargetElapsedTicks_;
             }
 
-            LeftOverTicks += delta;
-            while (LeftOverTicks >= TargetElapsedTicks)
+            LeftOverTicks_ += delta;
+            while (LeftOverTicks_ >= TargetElapsedTicks_)
             {
-                ElapsedTicks = TargetElapsedTicks;
-                TotalTicks += TargetElapsedTicks;
-                LeftOverTicks -= TargetElapsedTicks;
-                FrameCount++;
+                ElapsedTicks_ = TargetElapsedTicks_;
+                TotalTicks_ += TargetElapsedTicks_;
+                LeftOverTicks_ -= TargetElapsedTicks_;
+                FrameCount_++;
 
                 update();
             }
         }
         else
         {
-            ElapsedTicks = delta;
-            TotalTicks += delta;
-            LeftOverTicks = 0;
-            FrameCount++;
+            ElapsedTicks_ = delta;
+            TotalTicks_ += delta;
+            LeftOverTicks_ = 0;
+            FrameCount_++;
 
             update();
         }
 
-        if (FrameCount != lastFrameCount)
+        if (FrameCount_ != lastFrameCount)
         {
-            FramesThisSecond++;
+            FramesThisSecond_++;
         }
 
-        if (QpcSecondCounter >= QpcFrequency)
+        if (QpcSecondCounter_ >= QpcFrequency_)
         {
-            FramesPerSecond = FramesThisSecond;
-            FramesThisSecond = 0;
-            QpcSecondCounter %= QpcFrequency;
+            FramesPerSecond_ = FramesThisSecond_;
+            FramesThisSecond_ = 0;
+            QpcSecondCounter_ %= QpcFrequency_;
         }
     }
 
@@ -105,16 +119,16 @@ public:
     }
 
 private:
-    uint64_t QpcFrequency;
-    uint64_t QpcLastTime;
-    uint64_t QpcMaxDelta;
-    uint64_t QpcSecondCounter;
-    uint64_t ElapsedTicks;
-    uint64_t TotalTicks;
-    uint64_t LeftOverTicks;
-    uint32_t FrameCount;
-    uint32_t FramesPerSecond;
-    uint32_t FramesThisSecond;
-    bool     IsFixedTimeStep;
-    uint64_t TargetElapsedTicks;
+    uint64_t QpcFrequency_;
+    uint64_t QpcLastTime_;
+    uint64_t QpcMaxDelta_;
+    uint64_t QpcSecondCounter_;
+    uint64_t ElapsedTicks_;
+    uint64_t TotalTicks_;
+    uint64_t LeftOverTicks_;
+    uint32_t FrameCount_;
+    uint32_t FramesPerSecond_;
+    uint32_t FramesThisSecond_;
+    bool     IsFixedTimeStep_;
+    uint64_t TargetElapsedTicks_;
 };

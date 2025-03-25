@@ -7,19 +7,15 @@
 
 #include <vector>
 
-#include <SDL3/SDL_iostream.h>
-
 class File
 {
 public:
-    explicit File(const char* fileName);
+    explicit File(const wchar_t* path);
     File(const File& file) = delete;
     File& operator=(const File& file) = delete;
 
-    ~File();
-
-    [[nodiscard]] std::vector<uint8_t> ReadAll() const;
+    [[nodiscard]] std::vector<uint8_t> Data() const;
 
 private:
-    SDL_IOStream* m_pStream;
+    std::vector<uint8_t> m_data;
 };

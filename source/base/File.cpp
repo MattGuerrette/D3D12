@@ -5,61 +5,40 @@
 
 #include "File.hpp"
 
-#include <filesystem>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 #include <stdexcept>
 
-#include <fmt/format.h>
-
-#include <SDL3/SDL.h>
-
-namespace
+File::File(const wchar_t* path)
 {
-    std::string PathForResource(const char* fileName)
+    HANDLE hFile =
+        CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (hFile == INVALID_HANDLE_VALUE)
     {
-        const auto            basePath = SDL_GetBasePath();
-        std::filesystem::path path = std::string(basePath);
-
-        path.append(fileName);
-        return path.string();
+        throw std::runtime_error("Failed to open file");
     }
-} // namespace
 
-File::File(const char* fileName)
-{
-    const auto path = PathForResource(fileName);
-    m_pStream = SDL_IOFromFile(path.c_str(), "rb");
-    if (m_pStream == nullptr)
+    DWORD fileSize = GetFileSize(hFile, nullptr);
+    if (fileSize == INVALID_FILE_SIZE)
     {
-        throw std::runtime_error(fmt::format("Failed to open {} for read", path));
+        CloseHandle(hFile);
+        throw std::runtime_error("Failed to get file size");
     }
+
+    m_data.resize(fileSize);
+
+    DWORD bytesRead = 0;
+    if (!ReadFile(hFile, m_data.data(), fileSize, &bytesRead, nullptr))
+    {
+        CloseHandle(hFile);
+        throw std::runtime_error("Failed to read file");
+    }
+
+    CloseHandle(hFile);
 }
 
-File::~File()
+std::vector<uint8_t> File::Data() const
 {
-    if (m_pStream)
-    {
-        SDL_CloseIO(m_pStream);
-    }
-    m_pStream = nullptr;
-}
-
-std::vector<uint8_t> File::ReadAll() const
-{
-    SDL_SeekIO(m_pStream, 0, SDL_IO_SEEK_END);
-    const auto numBytes = SDL_TellIO(m_pStream);
-    SDL_SeekIO(m_pStream, 0, SDL_IO_SEEK_SET);
-
-    std::vector<uint8_t> bytes(numBytes);
-
-    size_t numBytesRead;
-    void*  data = SDL_LoadFile_IO(m_pStream, &numBytesRead, false);
-    if (data == nullptr)
-    {
-        throw std::runtime_error("Failed to read from stream");
-    }
-
-    memcpy(bytes.data(), data, numBytesRead);
-    SDL_free(data);
-
-    return bytes;
+    return m_data;
 }
