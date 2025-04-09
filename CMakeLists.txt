@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_package(gameinput CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
+find_package(SDL3 CONFIG REQUIRED)
 find_package(directx-headers CONFIG REQUIRED)
 find_package(directx12-agility CONFIG REQUIRED)
 find_package(directxtk12 CONFIG REQUIRED)

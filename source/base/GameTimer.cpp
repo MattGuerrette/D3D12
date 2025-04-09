@@ -1,83 +1,73 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2023-2024. Matt Guerrette. All rights reserved.
+// Copyright (c) Matt Guerrette 2023-2025
+// SPDX-License-Identifier: MIT
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "GameTimer.hpp"
 
-#define TIMER_FREQUENCY 1000000000LL
-
 GameTimer::GameTimer()
-    : ElapsedTicks_(0), TotalTicks_(0), LeftOverTicks_(0), FrameCount_(0), FramesPerSecond_(0),
-      FramesThisSecond_(0), QpcSecondCounter_(0), IsFixedTimeStep_(false), TargetElapsedTicks_(0)
+    : QpcSecondCounter(0), ElapsedTicks(0), TotalTicks(0), LeftOverTicks(0), FrameCount(0), FramesPerSecond(0),
+      FramesThisSecond(0), IsFixedTimeStep(false), TargetElapsedTicks(0)
 {
-    QpcFrequency_ = TIMER_FREQUENCY;
-
-    auto now = std::chrono::steady_clock::now();
-    auto nowNs = std::chrono::time_point_cast<std::chrono::nanoseconds>(now);
-    auto epoch = nowNs.time_since_epoch();
-    auto value = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch);
-    QpcLastTime_ = static_cast<uint64_t>(value.count());
+    QpcFrequency = SDL_GetPerformanceFrequency();
+    QpcLastTime = SDL_GetPerformanceCounter();
 
     // Max delta 1/10th of a second
-    QpcMaxDelta_ = QpcFrequency_ / 10;
+    QpcMaxDelta = QpcFrequency / 10;
 }
 
-uint64_t GameTimer::ElapsedTicks() const noexcept
+uint64_t GameTimer::GetElapsedTicks() const noexcept
 {
-    return ElapsedTicks_;
+    return ElapsedTicks;
 }
 
-double GameTimer::ElapsedSeconds() const noexcept
+double GameTimer::GetElapsedSeconds() const noexcept
 {
-    return TicksToSeconds(ElapsedTicks_);
+    return TicksToSeconds(ElapsedTicks);
 }
 
-uint64_t GameTimer::TotalTicks() const noexcept
+uint64_t GameTimer::GetTotalTicks() const noexcept
 {
-    return TotalTicks_;
+    return TotalTicks;
 }
 
-double GameTimer::TotalSeconds() const noexcept
+double GameTimer::GetTotalSeconds() const noexcept
 {
-    return TicksToSeconds(TotalTicks_);
+    return TicksToSeconds(TotalTicks);
 }
 
-uint32_t GameTimer::FrameCount() const noexcept
+uint32_t GameTimer::GetFrameCount() const noexcept
 {
-    return FrameCount_;
+    return FrameCount;
 }
 
-uint32_t GameTimer::FramesPerSecond() const noexcept
+uint32_t GameTimer::GetFramesPerSecond() const noexcept
 {
-    return FramesPerSecond_;
+    return FramesPerSecond;
 }
 
 void GameTimer::SetFixedTimeStep(const bool isFixedTimeStep) noexcept
 {
-    IsFixedTimeStep_ = isFixedTimeStep;
+    IsFixedTimeStep = isFixedTimeStep;
 }
 
 void GameTimer::SetTargetElapsedTicks(const uint64_t targetElapsed) noexcept
 {
-    TargetElapsedTicks_ = targetElapsed;
+    TargetElapsedTicks = targetElapsed;
 }
 
 void GameTimer::SetTargetElapsedSeconds(const double targetElapsed) noexcept
 {
-    TargetElapsedTicks_ = SecondsToTicks(targetElapsed);
+    TargetElapsedTicks = SecondsToTicks(targetElapsed);
 }
 
 void GameTimer::ResetElapsedTime()
 {
-    auto now = std::chrono::steady_clock::now();
-    auto nowNs = std::chrono::time_point_cast<std::chrono::nanoseconds>(now);
-    auto epoch = nowNs.time_since_epoch();
-    auto value = std::chrono::duration_cast<std::chrono::nanoseconds>(epoch);
-    QpcLastTime_ = static_cast<uint64_t>(value.count());
+    QpcLastTime = SDL_GetPerformanceCounter();
 
-    LeftOverTicks_ = 0;
-    FramesPerSecond_ = 0;
-    FramesThisSecond_ = 0;
-    QpcSecondCounter_ = 0;
-    TotalTicks_ = 0;
+    LeftOverTicks = 0;
+    FramesPerSecond = 0;
+    FramesThisSecond = 0;
+    QpcSecondCounter = 0;
+    TotalTicks = 0;
 }

@@ -5,40 +5,61 @@
 
 #include "File.hpp"
 
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-
+#include <filesystem>
 #include <stdexcept>
 
-File::File(const wchar_t* path)
+#include <fmt/format.h>
+
+#include <SDL3/SDL.h>
+
+namespace
 {
-    HANDLE hFile =
-        CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (hFile == INVALID_HANDLE_VALUE)
+    std::string PathForResource(const char* fileName)
     {
-        throw std::runtime_error("Failed to open file");
-    }
+        const auto            basePath = SDL_GetBasePath();
+        std::filesystem::path path = std::string(basePath);
 
-    DWORD fileSize = GetFileSize(hFile, nullptr);
-    if (fileSize == INVALID_FILE_SIZE)
+        path.append(fileName);
+        return path.string();
+    }
+} // namespace
+
+File::File(const char* fileName)
+{
+    const auto path = PathForResource(fileName);
+    m_pStream = SDL_IOFromFile(path.c_str(), "rb");
+    if (m_pStream == nullptr)
     {
-        CloseHandle(hFile);
-        throw std::runtime_error("Failed to get file size");
+        throw std::runtime_error(fmt::format("Failed to open {} for read", path));
     }
-
-    m_data.resize(fileSize);
-
-    DWORD bytesRead = 0;
-    if (!ReadFile(hFile, m_data.data(), fileSize, &bytesRead, nullptr))
-    {
-        CloseHandle(hFile);
-        throw std::runtime_error("Failed to read file");
-    }
-
-    CloseHandle(hFile);
 }
 
-std::vector<uint8_t> File::Data() const
+File::~File()
 {
-    return m_data;
+    if (m_pStream)
+    {
+        SDL_CloseIO(m_pStream);
+    }
+    m_pStream = nullptr;
+}
+
+std::vector<uint8_t> File::ReadAll() const
+{
+    SDL_SeekIO(m_pStream, 0, SDL_IO_SEEK_END);
+    const auto numBytes = SDL_TellIO(m_pStream);
+    SDL_SeekIO(m_pStream, 0, SDL_IO_SEEK_SET);
+
+    std::vector<uint8_t> bytes(numBytes);
+
+    size_t numBytesRead;
+    void*  data = SDL_LoadFile_IO(m_pStream, &numBytesRead, false);
+    if (data == nullptr)
+    {
+        throw std::runtime_error("Failed to read from stream");
+    }
+
+    memcpy(bytes.data(), data, numBytesRead);
+    SDL_free(data);
+
+    return bytes;
 }

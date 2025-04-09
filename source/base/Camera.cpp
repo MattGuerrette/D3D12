@@ -2,8 +2,6 @@
 
 #include "Camera.hpp"
 
-using namespace DirectX::SimpleMath;
-
 Camera::Camera(Vector3 position,
                Vector3 direction,
                Vector3 up,

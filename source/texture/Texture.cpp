@@ -19,12 +19,12 @@ namespace
     }
 } // namespace
 
-Texture::Texture(const wchar_t* filename)
+Texture::Texture(const std::string& filename)
 {
     try
     {
-        File file(filename);
-        m_data = file.Data();
+        File file(filename.c_str());
+        m_data = file.ReadAll();
     }
     catch (std::exception& e)
     {

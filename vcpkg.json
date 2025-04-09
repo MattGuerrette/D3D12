@@ -1,46 +1,48 @@
 {
   "name": "d3d12",
   "version-string": "1.0.0",
-  "builtin-baseline": "5e61fbe0fe032db1c1342a206c4a11d8ce3723bf",
+  "builtin-baseline": "b2cb0da531c2f1f740045bfe7c4dac59f0b2b69c",
   "dependencies": [
     {
-      "name": "cgltf",
-      "version>=": "1.14"
-    },
-    {
       "name": "directx-dxc",
-      "platform": "windows",
-      "version>=": "2024-07-31#2"
+      "version>=": "2024-07-31#2",
+      "platform": "windows"
     },
     {
       "name": "directx-headers",
-      "platform": "windows",
-      "version>=": "1.614.1"
+      "version>=": "1.614.1",
+      "platform": "windows"
     },
     {
       "name": "directx12-agility",
-      "platform": "windows",
-      "version>=": "1.614.1"
+      "version>=": "1.614.1",
+      "platform": "windows"
     },
     {
       "name": "directxmath",
       "version>=": "2024-10-15"
     },
     {
-      "name": "dstorage",
-      "platform": "windows",
-      "version>=": "1.2.3#1"
-    },
-    {
-      "name": "gameinput",
-      "platform": "windows",
-      "version>=": "1.0.26100.3987"
-    },
-    {
       "name": "directxtk12",
-      "features": [
-        "gameinput"
-      ]
+      "version>=": "2024-10-28",
+      "platform": "windows"
+    },
+    {
+      "name": "dstorage",
+      "version>=": "1.2.3#1",
+      "platform": "windows"
+    },
+    {
+      "name": "sdl3",
+      "version>=": "3.1.6-preview#1"
+    },
+    {
+      "name": "fmt",
+      "version>=": "11.0.2#1"
+    },
+    {
+      "name": "cgltf",
+      "version>=": "1.14"
     }
   ]
 }

@@ -11,11 +11,11 @@
 #include "Example.hpp"
 #include "File.hpp"
 
-using namespace DirectX::SimpleMath;
+#include <SDL3/SDL_main.h>
 
 extern "C"
 {
-    __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
+    __declspec(dllexport) extern const UINT D3D12SDKVersion = 614;
 }
 
 extern "C"
@@ -47,17 +47,18 @@ struct StaticGeometry
 class Mesh
 {
 public:
-    explicit Mesh(const wchar_t* filename);
+    explicit Mesh(const char* filename);
 
 private:
     StaticGeometry m_geometry;
 };
 
-Mesh::Mesh(const wchar_t* filename)
+Mesh::Mesh(const char* filename)
 {
     File file(filename);
 
-    const auto bytes = file.Data();
+    const auto bytes = file.ReadAll();
+
 }
 
 class HelloMesh final : public Example
@@ -100,7 +101,7 @@ private:
 };
 
 HelloMesh::HelloMesh(bool fullscreen)
-    : Example(L"Hello, Mesh", 800, 600, fullscreen), m_vertexBufferView(), m_constBufferDataBegin(nullptr)
+    : Example("Hello, Mesh", 800, 600, fullscreen), m_vertexBufferView(), m_constBufferDataBegin(nullptr)
 {
 }
 
@@ -121,19 +122,19 @@ bool HelloMesh::Load()
 
     CreatePipelineState();
 
+    SDL_HideCursor();
+
     return true;
 }
 
 void HelloMesh::Update(const GameTimer& timer)
 {
-    const auto elapsed = static_cast<float>(timer.ElapsedSeconds());
+    const auto elapsed = static_cast<float>(timer.GetElapsedSeconds());
 
-    m_mouse->SetMode(DirectX::Mouse::MODE_RELATIVE);
+    SDL_WarpMouseInWindow(m_window, GetFrameWidth() / 2, GetFrameHeight() / 2);
 
-    auto ms = m_mouse->GetState();
-
-    m_rotationX -= ms.x * elapsed;
-    m_rotationY -= ms.y * elapsed;
+    m_rotationX -= m_mouse->RelativeX() * elapsed;
+    m_rotationY -= m_mouse->RelativeY() * elapsed;
 
     m_camera->rotate(m_rotationY, m_rotationX);
 
@@ -240,15 +241,15 @@ void HelloMesh::CreatePipelineState()
     rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
     rasterDesc.FrontCounterClockwise = TRUE;
 
-    std::vector<uint8_t> vertexShader;
-    std::vector<uint8_t> pixelShader;
+    std::vector<std::byte> vertexShader;
+    std::vector<std::byte> pixelShader;
     try
     {
-        File vs(L"SimpleShaderVS.bin");
-        File ps(L"SimpleShaderPS.bin");
+        File vs("SimpleShaderVS.bin");
+        File ps("SimpleShaderPS.bin");
 
-        vertexShader = vs.Data();
-        pixelShader = ps.Data();
+        vertexShader = vs.ReadAll();
+        pixelShader = ps.ReadAll();
     }
     catch (const std::exception& e)
     {
@@ -379,17 +380,14 @@ void HelloMesh::CreateBuffers()
     }
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+int main(const int argc, char** argv)
 {
-    int argc;
-    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-
     bool fullscreen = false;
     if (argc > 1)
     {
         for (int i = 0; i < argc; i++)
         {
-            if (wcscmp(argv[i], L"--fullscreen") == 0)
+            if (strcmp(argv[i], "--fullscreen") == 0)
             {
                 fullscreen = true;
             }
